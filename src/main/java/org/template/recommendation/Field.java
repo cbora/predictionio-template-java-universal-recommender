@@ -28,4 +28,13 @@ public class Field implements Serializable {
     public float getBias() {
         return this.bias;
     }
+
+    @Override
+    public String toString() {
+        return "Field{" +
+                ", name= " + this.name +
+                ", values= " + this.values +
+                ", bias= " + this.bias +
+                '}';
+    }
 }
