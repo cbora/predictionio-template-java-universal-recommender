@@ -1,1 +1,0 @@
-# predictionio-template-java-universal-recommender
