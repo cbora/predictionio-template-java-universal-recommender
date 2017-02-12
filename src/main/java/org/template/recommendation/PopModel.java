@@ -7,12 +7,17 @@ import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.Function;
+import org.apache.spark.api.java.function.Function2;
+import org.apache.spark.api.java.function.PairFunction;
 import org.json4s.JsonAST;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
 import scala.Option;
+import scala.Tuple2;
+import scala.util.Random;
 
 
 import java.util.Arrays;
@@ -95,8 +100,15 @@ public class PopModel {
      * @return RDD<ItemID, Double>
      */
     public JavaPairRDD<String, Double> calcRandom(String appName, Interval interval) {
-        //TODO: implement
-        return null;
+        final JavaRDD<Event> events = eventsRDD(appName, null, interval);
+        final JavaRDD<String> actionsRDD = events.map(e -> e.targetEntityId()).filter(s -> s.isDefined()).map(s -> s.get()).distinct();
+        final JavaRDD<String> itemsRDD = fieldsRDD.keys();
+//        final JavaRDD<String> itemsRDD = fieldsRDD.map(new Function<Tuple2<String, Map<String,JsonAST.JValue>>, String>() {
+//            public String call(Tuple2<String, Map<String,JsonAST.JValue>> t) {return t._1();}
+//        });
+
+        Random rand = new Random();
+        return actionsRDD.union(itemsRDD).distinct().mapToPair(itemID -> new Tuple2<String, Double>(itemID, rand.nextDouble()));
     }
 
     /**
