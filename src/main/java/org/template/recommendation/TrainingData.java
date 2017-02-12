@@ -1,7 +1,7 @@
 package org.template.recommendation;
 
 import java.util.Map;
-import jdk.nashorn.internal.runtime.PropertyMap;
+import org.apache.predictionio.data.storage.PropertyMap;
 import org.apache.predictionio.controller.SanityCheck;
 import org.apache.spark.api.java.JavaPairRDD;
 
