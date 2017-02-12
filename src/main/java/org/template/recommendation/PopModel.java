@@ -1,5 +1,8 @@
 package org.template.recommendation;
 
+import org.apache.predictionio.data.store.java.OptionHelper;
+import org.apache.predictionio.data.storage.Event;
+import org.apache.predictionio.data.store.java.PJavaEventStore;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -9,7 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
-import org.apache.predictionio.data.storage.Event;
+import scala.Option;
+
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -58,14 +62,14 @@ public class PopModel {
 
     private transient static final Logger logger = LoggerFactory.getLogger(PopModel.class);
     private final JavaPairRDD<String, Map<String, JsonAST.JValue>> fieldsRDD;  // ItemID -> ItemProps
-    private final JavaSparkContext sc;
+    private final SparkContext sc;
 
     /**
      *
      * @param fieldsRDD
      * @param sc
      */
-    public PopModel(JavaPairRDD<String, Map<String, JsonAST.JValue>> fieldsRDD, JavaSparkContext sc) {
+    public PopModel(JavaPairRDD<String, Map<String, JsonAST.JValue>> fieldsRDD, SparkContext sc) {
         this.fieldsRDD = fieldsRDD;
         this.sc = sc;
     }
@@ -142,7 +146,18 @@ public class PopModel {
      * @return
      */
     public JavaRDD<Event> eventsRDD(String appName, List<String> eventNames, Interval interval) {
-        //TODO: implement
-        return null;
+        logger.info("PopModel getting eventsRDD for startTime: " + interval.getStart() + " and endTime " + interval.getEnd());
+        return PJavaEventStore.find(
+                appName, // appName
+                OptionHelper.<String>none(), // channelName
+                OptionHelper.<DateTime>some(interval.getStart()), // startTime
+                OptionHelper.<DateTime>some(interval.getEnd()), // untilTime
+                OptionHelper.<String>none(), // entityType
+                OptionHelper.<String>none(), //entityID
+                eventNames != null ? OptionHelper.<List<String>>some(eventNames) : OptionHelper.<List<String>>none(), // eventNames
+                OptionHelper.<Option<String>>none(), // targetEntityType
+                OptionHelper.<Option<String>>none(), // targetEntityID
+                sc // sparkContext
+        ).repartition(sc.defaultParallelism());
     }
 }
