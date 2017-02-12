@@ -26,44 +26,6 @@ import java.util.List;
 import java.util.Map;
 
 public class PopModel {
-    private static class RankingFieldName {
-        public static final String UserRank = "userRank";
-        public static final String UniqueRank = "uniqueRank";
-        public static final String PopRank = "popRank";
-        public static final String TrendRank = "trendRank";
-        public static final String HotRank = "hotRank";
-        public static final String UnknownRank = "unknownRank";
-
-        public List<String> toList() {
-            List<String> list = new LinkedList<>();
-            list.addAll(Arrays.asList(new String[]{UserRank, UniqueRank, PopRank, TrendRank, UnknownRank}));
-            return list;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("%s, %s, %s, %s, %s, %s", UserRank, UniqueRank, PopRank, TrendRank, HotRank);
-        }
-    }
-
-    private static class RankingType {
-        public static final String Popular = "popular";
-        public static final String Trending = "trending";
-        public static final String Hot = "hot";
-        public static final String UserDefined = "userDefined";
-        public static final String Random = "random";
-
-        public List<String> toList() {
-            List<String> list = new LinkedList<>();
-            list.addAll(Arrays.asList(new String[]{Popular, Trending, Hot, UserDefined, Random}));
-            return list;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("%s, %s, %s, %s, %s, %s", Popular, Trending, Hot, UserDefined, Random);
-        }
-    }
 
     private transient static final Logger logger = LoggerFactory.getLogger(PopModel.class);
     private final JavaPairRDD<String, Map<String, JsonAST.JValue>> fieldsRDD;  // ItemID -> ItemProps
