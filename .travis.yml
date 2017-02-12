@@ -1,0 +1,15 @@
+language: scala
+scala:
+  - 2.10.5
+jdk:
+  - oraclejdk8
+addons:
+    postgresql: "9.3"
+    apt:
+      packages:
+        - haveged
+                          
+sudo: required
+                          
+install:
+  sbt compile
