@@ -1,50 +1,37 @@
 package org.template.recommendation;
 
+import java.util.Map;
+import jdk.nashorn.internal.runtime.PropertyMap;
 import org.apache.predictionio.controller.SanityCheck;
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
 
 import java.io.Serializable;
 
+
 public class TrainingData implements Serializable, SanityCheck {
-    private final JavaPairRDD<String, User> users;
-    private final JavaPairRDD<String, Item> items;
-    private final JavaRDD<UserItemEvent> viewEvents;
-    private final JavaRDD<UserItemEvent> buyEvents;
+    private final Map<String, JavaPairRDD<String,String>> actions;
+    private final JavaPairRDD<String,PropertyMap> fieldsRDD;
 
-    public TrainingData(JavaPairRDD<String, User> users, JavaPairRDD<String, Item> items, JavaRDD<UserItemEvent> viewEvents, JavaRDD<UserItemEvent> buyEvents) {
-        this.users = users;
-        this.items = items;
-        this.viewEvents = viewEvents;
-        this.buyEvents = buyEvents;
+
+    public TrainingData(Map<String,JavaPairRDD<String,String>> actions, JavaPairRDD<String,PropertyMap> fieldsRDD) {
+        this.actions = actions;
+        this.fieldsRDD = fieldsRDD;
     }
 
-    public JavaPairRDD<String, User> getUsers() {
-        return users;
+    public Map<String,JavaPairRDD<String, String>> getActions() {
+        return actions;
     }
-
-    public JavaPairRDD<String, Item> getItems() {
-        return items;
-    }
-
-    public JavaRDD<UserItemEvent> getViewEvents() {
-        return viewEvents;
-    }
-
-    public JavaRDD<UserItemEvent> getBuyEvents() {
-        return buyEvents;
+    public JavaPairRDD<String,PropertyMap> getFieldsRDD() {
+        return fieldsRDD;
     }
 
     @Override
     public void sanityCheck() {
-        if (users.isEmpty()) {
-            throw new AssertionError("User data is empty");
+        if (actions.isEmpty()) {
+            throw new AssertionError("Actions Map is empty");
         }
-        if (items.isEmpty()) {
-            throw new AssertionError("Item data is empty");
-        }
-        if (viewEvents.isEmpty()) {
-            throw new AssertionError("View Event data is empty");
+        if (fieldsRDD.isEmpty()) {
+            throw new AssertionError("fieldsRDD data is empty");
         }
     }
 }
