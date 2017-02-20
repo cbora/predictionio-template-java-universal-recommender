@@ -9,9 +9,9 @@ public class Field implements Serializable {
     private final String name;  // name of metadata field
     private final List<String> values; // fields can have multiple values
     // like tags of a single value as when using hierarchical taxonomies
-    private final float bias; // any positive value is a boost, negative is a filter
+    private final Float bias; // any positive value is a boost, negative is a filter
 
-    public Field(String name, List<String> values, float bias) {
+    public Field(String name, List<String> values, Float bias) {
         this.name = name;
         this.values = values;
         this.bias = bias;
@@ -25,7 +25,7 @@ public class Field implements Serializable {
         return this.values;
     }
 
-    public float getBias() {
+    public Float getBias() {
         return this.bias;
     }
 

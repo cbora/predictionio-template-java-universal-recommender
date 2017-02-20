@@ -6,24 +6,24 @@ import java.util.List;
 
 public class Query implements Serializable{
     private final String user; // must be a user or item id
-    private final float userBias; // default: whatever is in algorithm params or 1
-    private String item; // must be a user or item id
-    private final float itemBias; // default: whatever is in algorithm params or 1
+    private final Float userBias; // default: whatever is in algorithm params or 1
+    private final String item; // must be a user or item id
+    private final Float itemBias; // default: whatever is in algorithm params or 1
     private final List<Field> fields; // default: whatever is in algorithm params or None
     private final String currentDate; // if used will override dateRange filter, currentDate must lie between the item's
     // expireDateName value and availableDateName value, all are ISO 8601 dates
     private final DateRange dateRange; // optional before and after filter applied to a date field
     private final List<String> blacklistItems; // default: whatever is in algorithm params or None
-    private final boolean returnSelf; // means for an item query should the item itself be returned, defaults
+    private final Boolean returnSelf; // means for an item query should the item itself be returned, defaults
     // to what is in the algorithm params or false
-    private int num; // default: whatever is in algorithm params, which itself has a default--probably 20
-    private List<String> eventNames; // names used to ID all user actions
-    private boolean withRanks; // Add to ItemScore rank fields values, default false
+    private final Integer num; // default: whatever is in algorithm params, which itself has a default--probably 20
+    private final List<String> eventNames; // names used to ID all user actions
+    private final Boolean withRanks; // Add to ItemScore rank fields values, default false
 
-    public Query(String user, float userBias, String item, float itemBias,
+    public Query(String user, Float userBias, String item, Float itemBias,
                  List<Field> fields, String currentDate, DateRange dateRange,
-                 List<String> blacklistItems, boolean returnSelf,
-                 int num, List<String> eventNames, boolean withRanks) {
+                 List<String> blacklistItems, Boolean returnSelf,
+                 Integer num, List<String> eventNames, Boolean withRanks) {
         this.user = user;
         this.userBias = userBias;
         this.item = item;
@@ -42,7 +42,7 @@ public class Query implements Serializable{
         return this.user;
     }
 
-    public float getUserBias() {
+    public Float getUserBias() {
         return this.userBias;
     }
 
@@ -50,7 +50,7 @@ public class Query implements Serializable{
         return this.item;
     }
 
-    public float getItemBias() {
+    public Float getItemBias() {
         return this.itemBias;
     }
 
@@ -78,12 +78,18 @@ public class Query implements Serializable{
         }
     }
 
-    public boolean isReturnSelf() {
+    public Boolean isReturnSelf() {
         return this.returnSelf;
     }
 
-    public int getNum() {
+    public Integer getNum() {
         return this.num;
+    }
+
+    public List<String> getEventNamesOrElse(List<String> defaultValue) {
+        return this.eventNames == null
+                ? defaultValue
+                : this.getEventNames();
     }
 
     public List<String> getEventNames() {
@@ -94,7 +100,7 @@ public class Query implements Serializable{
         }
     }
 
-    public boolean isWithRanks() {
+    public Boolean isWithRanks() {
         return this.withRanks;
     }
 
