@@ -3,15 +3,10 @@ package org.template.recommendation;
 import org.apache.predictionio.data.store.java.OptionHelper;
 import org.apache.predictionio.data.storage.Event;
 import org.apache.predictionio.data.store.java.PJavaEventStore;
-import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.Function2;
-import org.apache.spark.api.java.function.PairFunction;
-import org.apache.spark.rdd.RDD;
+import org.joda.time.format.ISODateTimeFormat;
 import org.json4s.JsonAST;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +28,7 @@ public class PopModel {
     private final SparkContext sc;
 
     /**
-     *
+     * Constructor
      * @param fieldsRDD
      * @param sc
      */
@@ -52,7 +47,42 @@ public class PopModel {
      * @return RDD<ItemID, Double>
      */
     public JavaPairRDD<String, Double> calc(String modelName, List<String> eventNames, String appName, Integer duration, String offsetDate) {
-        return null;
+        // end should always be now except in unusual instances like testing
+        DateTime end;
+        if (offsetDate.isEmpty()) {
+            end = DateTime.now();
+        }
+        else {
+            try {
+                end = ISODateTimeFormat.dateTimeParser().parseDateTime(offsetDate);
+            } catch (IllegalArgumentException e) {
+                logger.warn("Bad end for popModel: " + offsetDate + " using 'now'");
+                end = DateTime.now();
+            }
+        }
+
+        Interval interval = new Interval(end.minusSeconds(duration), end);
+
+        // based on type of popularity model return a set of (item-id, ranking-number) for all items
+        logger.info("PopModel " + modelName + " using end: " + end + ", and duration: " + duration + ", interval: " + interval);
+
+        switch (modelName) {
+            case RankingType.Popular:
+                return calcPopular(appName, eventNames, interval);
+            case RankingType.Trending:
+                return calcTrending(appName, eventNames, interval);
+            case RankingType.Hot:
+                return calcHot(appName, eventNames, interval);
+            case RankingType.Random:
+                return calcRandom(appName, interval);
+            case RankingType.UserDefined:
+                return getEmptyRDD();
+            default:
+                logger.warn( "" +
+                        "|Bad rankings param type=[$unknownRankingType] in engine definition params, possibly a bad json value.\n" +
+                        "|Use one of the available parameter values ($RankingType).");
+                return getEmptyRDD();
+        }
     }
 
     /**
@@ -63,7 +93,10 @@ public class PopModel {
      */
     public JavaPairRDD<String, Double> calcRandom(String appName, Interval interval) {
         final JavaRDD<Event> events = eventsRDD(appName, null, interval);
-        final JavaRDD<String> actionsRDD = events.map(e -> e.targetEntityId()).filter(s -> s.isDefined()).map(s -> s.get()).distinct();
+        final JavaRDD<String> actionsRDD = events
+                .map(e -> e.targetEntityId())
+                .filter(s -> s.isDefined())
+                .map(s -> s.get()).distinct();
         final JavaRDD<String> itemsRDD = fieldsRDD.map(t -> t._1());
 
         Random rand = new Random();
@@ -101,7 +134,6 @@ public class PopModel {
         Interval newerInterval = new Interval(interval.getStart().plus(halfInterval), interval.getEnd());
         logger.info("Newer Interval: " + newerInterval);
 
-        // TODO: empty checks
         JavaPairRDD<String, Double> olderPopRDD = calcPopular(appName, eventNames, olderInterval);
         if (!olderPopRDD.isEmpty()) {
             JavaPairRDD<String, Double> newerPopRDD = calcPopular(appName, eventNames, newerInterval);
