@@ -19,6 +19,7 @@ import org.joda.time.DateTime;
 import org.joda.time.Interval;
 import scala.Option;
 import scala.Tuple2;
+import scala.reflect.ClassTag$;
 import scala.util.Random;
 import scala.reflect.ClassTag;
 
@@ -51,7 +52,6 @@ public class PopModel {
      * @return RDD<ItemID, Double>
      */
     public JavaPairRDD<String, Double> calc(String modelName, List<String> eventNames, String appName, Integer duration, String offsetDate) {
-        //TODO: implement
         return null;
     }
 
@@ -103,9 +103,14 @@ public class PopModel {
 
         // TODO: empty checks
         JavaPairRDD<String, Double> olderPopRDD = calcPopular(appName, eventNames, olderInterval);
-        JavaPairRDD<String, Double> newerPopRDD = calcPopular(appName, eventNames, newerInterval);
-        return newerPopRDD.join(olderPopRDD)
-                .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
+        if (!olderPopRDD.isEmpty()) {
+            JavaPairRDD<String, Double> newerPopRDD = calcPopular(appName, eventNames, newerInterval);
+            return newerPopRDD.join(olderPopRDD)
+                    .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
+        }
+        else {
+            return getEmptyRDD();
+        }
 
         /* alt way
         final JavaRDD<Event> events = eventsRDD(appName, eventNames, interval);
@@ -133,15 +138,25 @@ public class PopModel {
         logger.info("Newer Interval: " + newerInterval);
 
         JavaPairRDD<String, Double> olderPopRDD = calcPopular(appName, eventNames, olderInterval);
-        JavaPairRDD<String, Double> middlePopRDD = calcPopular(appName, eventNames, middleInterval);
-        JavaPairRDD<String, Double> newerPopRDD = calcPopular(appName, eventNames, newerInterval);
+        if (!olderPopRDD.isEmpty()) {
+            JavaPairRDD<String, Double> middlePopRDD = calcPopular(appName, eventNames, middleInterval);
+            if (!middlePopRDD.isEmpty()) {
+                JavaPairRDD<String, Double> newerPopRDD = calcPopular(appName, eventNames, newerInterval);
 
-        JavaPairRDD<String, Double> newerVelocity = newerPopRDD.join(middlePopRDD)
-                .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
-        JavaPairRDD<String, Double> olderVelocity = middlePopRDD.join(olderPopRDD)
-                .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
-        return newerVelocity.join(olderVelocity)
-                .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
+                JavaPairRDD<String, Double> newerVelocity = newerPopRDD.join(middlePopRDD)
+                        .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
+                JavaPairRDD<String, Double> olderVelocity = middlePopRDD.join(olderPopRDD)
+                        .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
+                return newerVelocity.join(olderVelocity)
+                        .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
+            }
+            else {
+                return getEmptyRDD();
+            }
+        }
+        else {
+            return getEmptyRDD();
+        }
     }
 
     /**
@@ -167,31 +182,16 @@ public class PopModel {
         ).repartition(sc.defaultParallelism());
     }
 
-    public static void main(String[] args) {
-        JavaSparkContext sc = new JavaSparkContext(new SparkConf().setAppName("SparkApp"));
-        List<Tuple2<Integer, String>> list1 = Arrays.asList(new Tuple2<Integer, String>(1, "one"));
-        List<Tuple2<Integer, String>> list2 = Arrays.asList(new Tuple2<Integer, String>(2, "two"));
-        List<Tuple2<Integer, String>> list3 = new LinkedList<>();
-        List<Tuple2<Integer, String>> list4 = new LinkedList<>();
-
-        JavaPairRDD<Integer, String> rdd1 = sc.parallelizePairs(list1);
-        JavaPairRDD<Integer, String> rdd2 = sc.parallelizePairs(list2);
-        JavaPairRDD<Integer, String> rdd3 = sc.parallelizePairs(list3);
-        JavaPairRDD<Integer, String> rdd4 = sc.parallelizePairs(list4);
-
-        System.out.println("rdd1: " + rdd1.isEmpty());
-        System.out.println("rdd2: " + rdd1.isEmpty());
-        System.out.println("rdd3: " + rdd1.isEmpty());
-        System.out.println("rdd4: " + rdd1.isEmpty());
-
-        System.out.println("rdd1 x rdd2: " + rdd1.join(rdd2).isEmpty());
-        System.out.println("rdd1 x rdd3: " + rdd1.join(rdd3).isEmpty());
-        System.out.println("rdd3 x rdd1: " + rdd3.join(rdd1).isEmpty());
-        System.out.println("rdd3 x rdd4: " + rdd3.join(rdd4).isEmpty());
-
-        System.out.println("rdd1: " + rdd1.isEmpty());
-        System.out.println("rdd2: " + rdd1.isEmpty());
-        System.out.println("rdd3: " + rdd1.isEmpty());
-        System.out.println("rdd4: " + rdd1.isEmpty());
+    /**
+     * Generate an empty JavaPairRDD
+     * @param <K> type of key in key-value pair
+     * @param <V> type of value in key-value pair
+     * @return empty JavaPairRDD<K,V>
+     */
+    private <K,V> JavaPairRDD<K,V> getEmptyRDD() {
+        ClassTag<Tuple2<K, V>> tag = ClassTag$.MODULE$.apply(Tuple2.class);
+        JavaRDD<Tuple2<K, V>> empty = sc.emptyRDD(tag).toJavaRDD();
+        return JavaPairRDD.fromJavaRDD(empty);
     }
+
 }
