@@ -22,7 +22,7 @@ import scala.reflect.ClassTag;
 import java.util.*;
 
 public class PopModel {
-
+    //TODO: add finals where needed
     private transient static final Logger logger = LoggerFactory.getLogger(PopModel.class);
     public static final Map<String, String> nameByType;
     static {
