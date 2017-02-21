@@ -24,6 +24,18 @@ import java.util.*;
 public class PopModel {
 
     private transient static final Logger logger = LoggerFactory.getLogger(PopModel.class);
+    public static final Map<String, String> nameByType;
+    static {
+        // TODO: scala version has default value of RankingFieldName.UnknownRank. Do something similar?
+        Map<String, String> map = new HashMap<>();
+        map.put(RankingType.Popular, RankingFieldName.PopRank);
+        map.put(RankingType.Trending, RankingFieldName.TrendRank);
+        map.put(RankingType.Hot, RankingFieldName.HotRank);
+        map.put(RankingType.UserDefined, RankingFieldName.UserRank);
+        map.put(RankingType.Random, RankingFieldName.UniqueRank);
+        nameByType = Collections.unmodifiableMap(map);
+    }
+
     private final JavaPairRDD<String, Map<String, JsonAST.JValue>> fieldsRDD;  // ItemID -> ItemProps
     private final SparkContext sc;
 
@@ -225,5 +237,4 @@ public class PopModel {
         JavaRDD<Tuple2<K, V>> empty = sc.emptyRDD(tag).toJavaRDD();
         return JavaPairRDD.fromJavaRDD(empty);
     }
-
 }
