@@ -19,6 +19,6 @@ public class RankingType {
 
     @Override
     public String toString() {
-        return String.format("%s, %s, %s, %s, %s, %s", Popular, Trending, Hot, UserDefined, Random);
+        return String.format("%s, %s, %s, %s, %s", Popular, Trending, Hot, UserDefined, Random);
     }
 }
