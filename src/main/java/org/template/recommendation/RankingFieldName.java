@@ -14,12 +14,12 @@ public class RankingFieldName {
 
     public List<String> toList() {
         List<String> list = new LinkedList<>();
-        list.addAll(Arrays.asList(new String[]{UserRank, UniqueRank, PopRank, TrendRank, UnknownRank}));
+        list.addAll(Arrays.asList(new String[]{UserRank, UniqueRank, PopRank, TrendRank, HotRank}));
         return list;
     }
 
     @Override
     public String toString() {
-        return String.format("%s, %s, %s, %s, %s, %s", UserRank, UniqueRank, PopRank, TrendRank, HotRank);
+        return String.format("%s, %s, %s, %s, %s", UserRank, UniqueRank, PopRank, TrendRank, HotRank);
     }
 }
