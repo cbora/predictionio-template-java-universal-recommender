@@ -29,8 +29,8 @@ public class PopModel {
 
     /**
      * Constructor
-     * @param fieldsRDD
-     * @param sc
+     * @param fieldsRDD rdd of (ItemID, ItemProp) pairs (ItemProp is a String -> JSonAST.JValue map)
+     * @param sc spark context
      */
     public PopModel(JavaPairRDD<String, Map<String, JsonAST.JValue>> fieldsRDD, SparkContext sc) {
         this.fieldsRDD = fieldsRDD;
@@ -39,12 +39,12 @@ public class PopModel {
 
     /**
      * Create random rank for all items
-     * @param modelName
-     * @param eventNames
-     * @param appName
-     * @param duration
-     * @param offsetDate
-     * @return RDD<ItemID, Double>
+     * @param modelName name of model
+     * @param eventNames names of events we want to look at
+     * @param appName name of app whose events we want to look at
+     * @param duration length of time we want to look at
+     * @param offsetDate look at events within [offsetDate - duration, offsetDate). Defaults to now() if empty string or invalid syntax.
+     * @return JavaPairRDD &lt ItemID, Double &gt
      */
     public JavaPairRDD<String, Double> calc(String modelName, List<String> eventNames, String appName, Integer duration, String offsetDate) {
         // end should always be now except in unusual instances like testing
@@ -87,17 +87,17 @@ public class PopModel {
 
     /**
      * Create random rank for all items
-     * @param appName
-     * @param interval
-     * @return RDD<ItemID, Double>
+     * @param appName name of app whose events we want to look at
+     * @param interval look at events within this interval
+     * @return JavaPairRDD &lt ItemID, Double &rt
      */
     public JavaPairRDD<String, Double> calcRandom(String appName, Interval interval) {
         final JavaRDD<Event> events = eventsRDD(appName, null, interval);
         final JavaRDD<String> actionsRDD = events
-                .map(e -> e.targetEntityId())
-                .filter(s -> s.isDefined())
-                .map(s -> s.get()).distinct();
-        final JavaRDD<String> itemsRDD = fieldsRDD.map(t -> t._1());
+                .map(Event::targetEntityId)
+                .filter(Option::isDefined)
+                .map(Option::get).distinct();
+        final JavaRDD<String> itemsRDD = fieldsRDD.map(Tuple2::_1);
 
         Random rand = new Random();
         return actionsRDD.union(itemsRDD).distinct().mapToPair(itemID -> new Tuple2<String, Double>(itemID, rand.nextDouble()));
@@ -105,10 +105,10 @@ public class PopModel {
 
     /**
      * Creates rank from the number of named events per item for the duration
-     * @param appName
-     * @param eventNames
-     * @param interval
-     * @return RDD<ItemID, Double>
+     * @param appName name of app whose events we want to look at
+     * @param eventNames names of events we want to look at
+     * @param interval look at events within this interval
+     * @return JavaPairRDD &lt ItemID, Double &gt
      */
     public JavaPairRDD<String, Double> calcPopular(String appName, List<String> eventNames, Interval interval) {
         final JavaRDD<Event> events = eventsRDD(appName, eventNames, interval);
@@ -121,10 +121,10 @@ public class PopModel {
      * Creates a rank for each item by dividing the duration in two and counting named events in both buckets
      * then dividing most recent by less recent. This ranks by change in popularity or velocity of populatiy change.
      * Interval(start, end) end instant is always greater than or equal to the start instant.
-     * @param appName
-     * @param eventNames
-     * @param interval
-     * @return RDD<ItemID, Double>
+     * @param appName name of app whose events we want to look at
+     * @param eventNames names of events we want to look at
+     * @param interval look at events within this interval
+     * @return JavaPairRDD &lt ItemID, Double &gt
      */
     public JavaPairRDD<String, Double> calcTrending(String appName, List<String> eventNames, Interval interval) {
         logger.info("Current Interval: " + interval + ", " + interval.toDurationMillis());
@@ -155,10 +155,10 @@ public class PopModel {
     /**
      * Creates a rank for each item by divding all events per item into three buckets and calculating the change in
      * velocity over time, in other words the acceleration of popularity change.
-     * @param appName
-     * @param eventNames
-     * @param interval
-     * @return RDD<ItemID, Double>
+     * @param appName name of app whose events we want to look at
+     * @param eventNames names of events we want to look at
+     * @param interval look at events within this interval
+     * @return RDD &lt ItemID, Double &gt
      */
     public JavaPairRDD<String, Double> calcHot(String appName, List<String> eventNames, Interval interval) {
         logger.info("Current Interval: " + interval + ", " + interval.toDurationMillis());
@@ -192,11 +192,11 @@ public class PopModel {
     }
 
     /**
-     *
-     * @param appName
-     * @param eventNames
-     * @param interval
-     * @return
+     * Read events from event store
+     * @param appName name of app whose events we want to look at
+     * @param eventNames names of events we want to look at
+     * @param interval look at events within this interval
+     * @return JavaRDD &lt Event &gt
      */
     public JavaRDD<Event> eventsRDD(String appName, List<String> eventNames, Interval interval) {
         logger.info("PopModel getting eventsRDD for startTime: " + interval.getStart() + " and endTime " + interval.getEnd());
@@ -218,7 +218,7 @@ public class PopModel {
      * Generate an empty JavaPairRDD
      * @param <K> type of key in key-value pair
      * @param <V> type of value in key-value pair
-     * @return empty JavaPairRDD<K,V>
+     * @return JavaPairRDD &lt K,V &gt
      */
     private <K,V> JavaPairRDD<K,V> getEmptyRDD() {
         ClassTag<Tuple2<K, V>> tag = ClassTag$.MODULE$.apply(Tuple2.class);
