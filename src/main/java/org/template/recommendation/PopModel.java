@@ -52,12 +52,13 @@ public class PopModel {
      * Create random rank for all items
      * @param modelName name of model
      * @param eventNames names of events we want to look at
-     * @param appName name of app whose events we want to look at
+     * @param eventStore store of events we want to look at
      * @param duration length of time we want to look at
      * @param offsetDate look at events within [offsetDate - duration, offsetDate). Defaults to now() if empty string or invalid syntax.
      * @return JavaPairRDD &lt ItemID, Double &gt
      */
-    public JavaPairRDD<String, Double> calc(String modelName, List<String> eventNames, String appName, Integer duration, String offsetDate) {
+    public JavaPairRDD<String, Double> calc(String modelName, List<String> eventNames,
+                                            IEventStore eventStore, Integer duration, String offsetDate) {
         // end should always be now except in unusual instances like testing
         DateTime end;
         if (offsetDate.isEmpty()) {
@@ -79,13 +80,13 @@ public class PopModel {
 
         switch (modelName) {
             case RankingType.Popular:
-                return calcPopular(appName, eventNames, interval);
+                return calcPopular(eventStore, eventNames, interval);
             case RankingType.Trending:
-                return calcTrending(appName, eventNames, interval);
+                return calcTrending(eventStore, eventNames, interval);
             case RankingType.Hot:
-                return calcHot(appName, eventNames, interval);
+                return calcHot(eventStore, eventNames, interval);
             case RankingType.Random:
-                return calcRandom(appName, interval);
+                return calcRandom(eventStore, interval);
             case RankingType.UserDefined:
                 return getEmptyRDD();
             default:
@@ -98,12 +99,12 @@ public class PopModel {
 
     /**
      * Create random rank for all items
-     * @param appName name of app whose events we want to look at
+     * @param eventStore store of events we want to look at
      * @param interval look at events within this interval
      * @return JavaPairRDD &lt ItemID, Double &rt
      */
-    public JavaPairRDD<String, Double> calcRandom(String appName, Interval interval) {
-        final JavaRDD<Event> events = eventsRDD(appName, null, interval);
+    public JavaPairRDD<String, Double> calcRandom(IEventStore eventStore, Interval interval) {
+        final JavaRDD<Event> events = eventStore.eventsRDD(sc,  interval);
         final JavaRDD<String> actionsRDD = events
                 .map(Event::targetEntityId)
                 .filter(Option::isDefined)
@@ -116,13 +117,13 @@ public class PopModel {
 
     /**
      * Creates rank from the number of named events per item for the duration
-     * @param appName name of app whose events we want to look at
+     * @param eventStore store of events we want to look at
      * @param eventNames names of events we want to look at
      * @param interval look at events within this interval
      * @return JavaPairRDD &lt ItemID, Double &gt
      */
-    public JavaPairRDD<String, Double> calcPopular(String appName, List<String> eventNames, Interval interval) {
-        final JavaRDD<Event> events = eventsRDD(appName, eventNames, interval);
+    public JavaPairRDD<String, Double> calcPopular(IEventStore eventStore, List<String> eventNames, Interval interval) {
+        final JavaRDD<Event> events = eventStore.eventsRDD(sc, eventNames, interval);
         return events.mapToPair(e -> new Tuple2<String, Integer>(e.targetEntityId().get(), 1))
                 .reduceByKey((a,b) -> a + b)
                 .mapToPair(t -> new Tuple2<String, Double>(t._1(), (double) t._2()));
@@ -132,12 +133,12 @@ public class PopModel {
      * Creates a rank for each item by dividing the duration in two and counting named events in both buckets
      * then dividing most recent by less recent. This ranks by change in popularity or velocity of populatiy change.
      * Interval(start, end) end instant is always greater than or equal to the start instant.
-     * @param appName name of app whose events we want to look at
+     * @param eventStore store of events we want to look at
      * @param eventNames names of events we want to look at
      * @param interval look at events within this interval
      * @return JavaPairRDD &lt ItemID, Double &gt
      */
-    public JavaPairRDD<String, Double> calcTrending(String appName, List<String> eventNames, Interval interval) {
+    public JavaPairRDD<String, Double> calcTrending(IEventStore eventStore, List<String> eventNames, Interval interval) {
         logger.info("Current Interval: " + interval + ", " + interval.toDurationMillis());
         final long halfInterval = interval.toDurationMillis() / 2;
         final Interval olderInterval = new Interval(interval.getStart(), interval.getStart().plus(halfInterval));
@@ -145,9 +146,9 @@ public class PopModel {
         final Interval newerInterval = new Interval(interval.getStart().plus(halfInterval), interval.getEnd());
         logger.info("Newer Interval: " + newerInterval);
 
-        final JavaPairRDD<String, Double> olderPopRDD = calcPopular(appName, eventNames, olderInterval);
+        final JavaPairRDD<String, Double> olderPopRDD = calcPopular(eventStore, eventNames, olderInterval);
         if (!olderPopRDD.isEmpty()) {
-            final JavaPairRDD<String, Double> newerPopRDD = calcPopular(appName, eventNames, newerInterval);
+            final JavaPairRDD<String, Double> newerPopRDD = calcPopular(eventStore, eventNames, newerInterval);
             return newerPopRDD.join(olderPopRDD)
                     .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
         }
@@ -166,12 +167,12 @@ public class PopModel {
     /**
      * Creates a rank for each item by divding all events per item into three buckets and calculating the change in
      * velocity over time, in other words the acceleration of popularity change.
-     * @param appName name of app whose events we want to look at
+     * @param eventStore store of events we want to look at
      * @param eventNames names of events we want to look at
      * @param interval look at events within this interval
      * @return RDD &lt ItemID, Double &gt
      */
-    public JavaPairRDD<String, Double> calcHot(String appName, List<String> eventNames, Interval interval) {
+    public JavaPairRDD<String, Double> calcHot(IEventStore eventStore, List<String> eventNames, Interval interval) {
         logger.info("Current Interval: " + interval + ", " + interval.toDurationMillis());
         final Interval olderInterval = new Interval(interval.getStart(), interval.getStart().plus(interval.toDurationMillis() / 3));
         logger.info("Older Interval: " + olderInterval);
@@ -180,11 +181,11 @@ public class PopModel {
         final Interval newerInterval = new Interval(middleInterval.getEnd(), interval.getEnd());
         logger.info("Newer Interval: " + newerInterval);
 
-        final JavaPairRDD<String, Double> olderPopRDD = calcPopular(appName, eventNames, olderInterval);
+        final JavaPairRDD<String, Double> olderPopRDD = calcPopular(eventStore, eventNames, olderInterval);
         if (!olderPopRDD.isEmpty()) {
-            final JavaPairRDD<String, Double> middlePopRDD = calcPopular(appName, eventNames, middleInterval);
+            final JavaPairRDD<String, Double> middlePopRDD = calcPopular(eventStore, eventNames, middleInterval);
             if (!middlePopRDD.isEmpty()) {
-                final JavaPairRDD<String, Double> newerPopRDD = calcPopular(appName, eventNames, newerInterval);
+                final JavaPairRDD<String, Double> newerPopRDD = calcPopular(eventStore, eventNames, newerInterval);
 
                 final JavaPairRDD<String, Double> newerVelocity = newerPopRDD.join(middlePopRDD)
                         .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
@@ -200,29 +201,6 @@ public class PopModel {
         else {
             return getEmptyRDD();
         }
-    }
-
-    /**
-     * Read events from event store
-     * @param appName name of app whose events we want to look at
-     * @param eventNames names of events we want to look at
-     * @param interval look at events within this interval
-     * @return JavaRDD &lt Event &gt
-     */
-    public JavaRDD<Event> eventsRDD(String appName, List<String> eventNames, Interval interval) {
-        logger.info("PopModel getting eventsRDD for startTime: " + interval.getStart() + " and endTime " + interval.getEnd());
-        return PJavaEventStore.find(
-                appName, // appName
-                OptionHelper.<String>none(), // channelName
-                OptionHelper.<DateTime>some(interval.getStart()), // startTime
-                OptionHelper.<DateTime>some(interval.getEnd()), // untilTime
-                OptionHelper.<String>none(), // entityType
-                OptionHelper.<String>none(), //entityID
-                eventNames != null ? OptionHelper.<List<String>>some(eventNames) : OptionHelper.<List<String>>none(), // eventNames
-                OptionHelper.<Option<String>>none(), // targetEntityType
-                OptionHelper.<Option<String>>none(), // targetEntityID
-                sc // sparkContext
-        ).repartition(sc.defaultParallelism());
     }
 
     /**
