@@ -104,7 +104,7 @@ public class PopModel {
      * @return JavaPairRDD &lt ItemID, Double &rt
      */
     public JavaPairRDD<String, Double> calcRandom(IEventStore eventStore, Interval interval) {
-        final JavaRDD<Event> events = eventStore.eventsRDD(sc,  interval);
+        final JavaRDD<Event> events = eventStore.eventsRDD(sc, interval);
         final JavaRDD<String> actionsRDD = events
                 .map(Event::targetEntityId)
                 .filter(Option::isDefined)
@@ -123,6 +123,7 @@ public class PopModel {
      * @return JavaPairRDD &lt ItemID, Double &gt
      */
     public JavaPairRDD<String, Double> calcPopular(IEventStore eventStore, List<String> eventNames, Interval interval) {
+        logger.info("PopModel getting eventsRDD for startTime: " + interval.getStart() + " and endTime " + interval.getEnd());
         final JavaRDD<Event> events = eventStore.eventsRDD(sc, eventNames, interval);
         return events.mapToPair(e -> new Tuple2<String, Integer>(e.targetEntityId().get(), 1))
                 .reduceByKey((a,b) -> a + b)
