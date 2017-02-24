@@ -34,8 +34,8 @@ public class PopModelTest {
     @Before
     public void setUp() {
         // create events
-        Event e1 = makeEvent("e1", "a", new DateTime(100));
-        Event e2 = makeEvent("e2", "a", new DateTime(100));
+        Event e1 = makeEvent("e1", "a", new DateTime(90));
+        Event e2 = makeEvent("e2", "a", new DateTime(110));
         Event e3 = makeEvent("e3", "b", new DateTime(120));
         Event e4 = makeEvent("e4", "b", new DateTime(80));
         Event e5 = makeEvent("e5", "b", new DateTime(100));
@@ -89,14 +89,45 @@ public class PopModelTest {
         assertTrue(!map.containsKey("d"));
     }
 
-    @Ignore
+    @Test
     public void calcTrending() throws Exception {
+        JavaPairRDD<String, Double> rdd;
+        Map<String, Double> map;
 
+        rdd = model.calcTrending(eventStore, null, new Interval(0,200));
+        map = rdd.collectAsMap();
+        assertTrue(map.get("a") == 0.0);
+        assertTrue(map.get("b") == 1.0);
+        assertTrue(!map.containsKey("c"));
+        assertTrue(!map.containsKey("d"));
+
+        rdd = model.calcTrending(eventStore, null, new Interval(0, 80));
+        assertTrue(rdd.isEmpty());
+
+        rdd = model.calcTrending(eventStore, null, new Interval(100, 300));
+        assertTrue(rdd.isEmpty());
     }
 
-    @Ignore
+    @Test
     public void calcHot() throws Exception {
+        JavaPairRDD<String, Double> rdd;
+        Map<String, Double> map;
 
+        rdd = model.calcHot(eventStore, null, new Interval(80,140));
+        map = rdd.collectAsMap();
+        assertTrue(!map.containsKey("a"));
+        assertTrue(map.get("b") == 0.0);
+        assertTrue(!map.containsKey("c"));
+        assertTrue(!map.containsKey("d"));
+
+        rdd = model.calcHot(eventStore, null, new Interval(0, 120));
+        assertTrue(rdd.isEmpty());
+
+        rdd = model.calcHot(eventStore, null, new Interval(100, 400));
+        assertTrue(rdd.isEmpty());
+
+        rdd = model.calcHot(eventStore, null, new Interval(0, 300));
+        assertTrue(rdd.isEmpty());
     }
 
     @After
