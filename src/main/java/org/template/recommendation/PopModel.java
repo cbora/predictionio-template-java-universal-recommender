@@ -22,7 +22,6 @@ import scala.reflect.ClassTag;
 import java.util.*;
 
 public class PopModel {
-    //TODO: add finals where needed
     private transient static final Logger logger = LoggerFactory.getLogger(PopModel.class);
     public static final Map<String, String> nameByType;
     static {
@@ -73,7 +72,7 @@ public class PopModel {
             }
         }
 
-        Interval interval = new Interval(end.minusSeconds(duration), end);
+        final Interval interval = new Interval(end.minusSeconds(duration), end);
 
         // based on type of popularity model return a set of (item-id, ranking-number) for all items
         logger.info("PopModel " + modelName + " using end: " + end + ", and duration: " + duration + ", interval: " + interval);
@@ -111,7 +110,7 @@ public class PopModel {
                 .map(Option::get).distinct();
         final JavaRDD<String> itemsRDD = fieldsRDD.map(Tuple2::_1);
 
-        Random rand = new Random();
+        final Random rand = new Random();
         return actionsRDD.union(itemsRDD).distinct().mapToPair(itemID -> new Tuple2<String, Double>(itemID, rand.nextDouble()));
     }
 
@@ -140,15 +139,15 @@ public class PopModel {
      */
     public JavaPairRDD<String, Double> calcTrending(String appName, List<String> eventNames, Interval interval) {
         logger.info("Current Interval: " + interval + ", " + interval.toDurationMillis());
-        long halfInterval = interval.toDurationMillis() / 2;
-        Interval olderInterval = new Interval(interval.getStart(), interval.getStart().plus(halfInterval));
+        final long halfInterval = interval.toDurationMillis() / 2;
+        final Interval olderInterval = new Interval(interval.getStart(), interval.getStart().plus(halfInterval));
         logger.info("Older Interval: " + olderInterval);
-        Interval newerInterval = new Interval(interval.getStart().plus(halfInterval), interval.getEnd());
+        final Interval newerInterval = new Interval(interval.getStart().plus(halfInterval), interval.getEnd());
         logger.info("Newer Interval: " + newerInterval);
 
-        JavaPairRDD<String, Double> olderPopRDD = calcPopular(appName, eventNames, olderInterval);
+        final JavaPairRDD<String, Double> olderPopRDD = calcPopular(appName, eventNames, olderInterval);
         if (!olderPopRDD.isEmpty()) {
-            JavaPairRDD<String, Double> newerPopRDD = calcPopular(appName, eventNames, newerInterval);
+            final JavaPairRDD<String, Double> newerPopRDD = calcPopular(appName, eventNames, newerInterval);
             return newerPopRDD.join(olderPopRDD)
                     .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
         }
@@ -174,22 +173,22 @@ public class PopModel {
      */
     public JavaPairRDD<String, Double> calcHot(String appName, List<String> eventNames, Interval interval) {
         logger.info("Current Interval: " + interval + ", " + interval.toDurationMillis());
-        Interval olderInterval = new Interval(interval.getStart(), interval.getStart().plus(interval.toDurationMillis() / 3));
+        final Interval olderInterval = new Interval(interval.getStart(), interval.getStart().plus(interval.toDurationMillis() / 3));
         logger.info("Older Interval: " + olderInterval);
-        Interval middleInterval = new Interval(olderInterval.getEnd(), olderInterval.getEnd().plus(olderInterval.toDurationMillis()));
+        final Interval middleInterval = new Interval(olderInterval.getEnd(), olderInterval.getEnd().plus(olderInterval.toDurationMillis()));
         logger.info("Middle Interval: " + middleInterval);
-        Interval newerInterval = new Interval(middleInterval.getEnd(), interval.getEnd());
+        final Interval newerInterval = new Interval(middleInterval.getEnd(), interval.getEnd());
         logger.info("Newer Interval: " + newerInterval);
 
-        JavaPairRDD<String, Double> olderPopRDD = calcPopular(appName, eventNames, olderInterval);
+        final JavaPairRDD<String, Double> olderPopRDD = calcPopular(appName, eventNames, olderInterval);
         if (!olderPopRDD.isEmpty()) {
-            JavaPairRDD<String, Double> middlePopRDD = calcPopular(appName, eventNames, middleInterval);
+            final JavaPairRDD<String, Double> middlePopRDD = calcPopular(appName, eventNames, middleInterval);
             if (!middlePopRDD.isEmpty()) {
-                JavaPairRDD<String, Double> newerPopRDD = calcPopular(appName, eventNames, newerInterval);
+                final JavaPairRDD<String, Double> newerPopRDD = calcPopular(appName, eventNames, newerInterval);
 
-                JavaPairRDD<String, Double> newerVelocity = newerPopRDD.join(middlePopRDD)
+                final JavaPairRDD<String, Double> newerVelocity = newerPopRDD.join(middlePopRDD)
                         .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
-                JavaPairRDD<String, Double> olderVelocity = middlePopRDD.join(olderPopRDD)
+                final JavaPairRDD<String, Double> olderVelocity = middlePopRDD.join(olderPopRDD)
                         .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
                 return newerVelocity.join(olderVelocity)
                         .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
@@ -233,8 +232,8 @@ public class PopModel {
      * @return JavaPairRDD &lt K,V &gt
      */
     private <K,V> JavaPairRDD<K,V> getEmptyRDD() {
-        ClassTag<Tuple2<K, V>> tag = ClassTag$.MODULE$.apply(Tuple2.class);
-        JavaRDD<Tuple2<K, V>> empty = sc.emptyRDD(tag).toJavaRDD();
+        final ClassTag<Tuple2<K, V>> tag = ClassTag$.MODULE$.apply(Tuple2.class);
+        final JavaRDD<Tuple2<K, V>> empty = sc.emptyRDD(tag).toJavaRDD();
         return JavaPairRDD.fromJavaRDD(empty);
     }
 }
