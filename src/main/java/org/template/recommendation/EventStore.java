@@ -40,18 +40,8 @@ public class EventStore implements IEventStore  {
         ).repartition(sc.defaultParallelism());
     }
 
+    @Override
     public JavaRDD<Event> eventsRDD(SparkContext sc, Interval interval) {
-        return PJavaEventStore.find(
-                appName, // appName
-                OptionHelper.<String>none(), // channelName
-                OptionHelper.<DateTime>some(interval.getStart()), // startTime
-                OptionHelper.<DateTime>some(interval.getEnd()), // untilTime
-                OptionHelper.<String>none(), // entityType
-                OptionHelper.<String>none(), //entityID
-                OptionHelper.<List<String>>none(), // eventNames
-                OptionHelper.<Option<String>>none(), // targetEntityType
-                OptionHelper.<Option<String>>none(), // targetEntityID
-                sc // sparkContext
-        ).repartition(sc.defaultParallelism());
+        return eventsRDD(sc, null, interval);
     }
 }
