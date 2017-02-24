@@ -9,6 +9,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
+import org.json4s.JsonAST;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -48,18 +49,52 @@ public class PopModelTest {
         SparkConf conf = new SparkConf().setAppName("myApp").setMaster("local");
         sc = new SparkContext(conf);
 
+        // create fieldsRDD
+        List<Tuple2<String, Map<String, JsonAST.JValue>>> fieldsList = Arrays.asList(
+                new Tuple2<String, Map<String, JsonAST.JValue>>("a", null),
+                new Tuple2<String, Map<String, JsonAST.JValue>>("e", null)
+        );
+        Seq<Tuple2<String, Map<String, JsonAST.JValue>>> fieldsSeq = JavaConversions.asScalaBuffer(fieldsList).toSeq();
+        ClassTag<Tuple2<String, Map<String, JsonAST.JValue>>> tag = ClassTag$.MODULE$.apply(Tuple2.class);
+        JavaRDD<Tuple2<String, Map<String, JsonAST.JValue>>> _fieldsRDD = sc.parallelize(fieldsSeq, sc.defaultParallelism(), tag).toJavaRDD();
+        JavaPairRDD<String, Map<String, JsonAST.JValue>> fieldsRDD = JavaPairRDD.fromJavaRDD(_fieldsRDD);
+
         // create Pop Model
-        model = new PopModel(null, sc);
+        model = new PopModel(fieldsRDD, sc);
     }
 
-    @Ignore
+    @Test
     public void calc() throws Exception {
+        JavaPairRDD<String, Double> rdd;
 
+        model.calc(RankingType.Random, Arrays.asList("e1", "e2", "e3", "e4", "e6"), eventStore, 200, "");
+        model.calc(RankingType.Popular, Arrays.asList("e1", "e2", "e3", "e4", "e6"), eventStore, 200, "");
+        model.calc(RankingType.Trending, Arrays.asList("e1", "e2", "e3", "e4", "e6"), eventStore, 200, "");
+        model.calc(RankingType.Hot, Arrays.asList("e1", "e2", "e3", "e4", "e6"), eventStore, 200, "");
+
+        rdd = model.calc(RankingType.UserDefined, Arrays.asList("e1", "e2", "e3", "e4", "e6"), eventStore, 200, "");
+        assertTrue(rdd.isEmpty());
+
+        rdd = model.calc("Hello, world", Arrays.asList("e1", "e2", "e3", "e4", "e6"), eventStore, 200, "");
+        assertTrue(rdd.isEmpty());
     }
 
-    @Ignore
+    @Test
     public void calcRandom() throws Exception {
+        JavaPairRDD<String, Double> rdd;
+        Map<String, Double> map;
 
+        rdd = model.calcRandom(eventStore, new Interval(60, 200));
+        map = rdd.collectAsMap();
+        assertTrue(map.containsKey("a"));
+        System.out.println("************ calc rand: a -> " + map.get("a") + "************");
+        assertTrue(map.containsKey("b"));
+        System.out.println("************ calc rand: b -> " + map.get("b") + "************");
+        assertTrue(!map.containsKey("c"));
+        assertTrue(map.containsKey("d"));
+        System.out.println("************ calc rand: d -> " + map.get("d") + "************");
+        assertTrue(map.containsKey("e"));
+        System.out.println("************ calc rand: e -> " + map.get("e") + "************");
     }
 
     @Test
@@ -172,7 +207,7 @@ public class PopModelTest {
             }
 
             Seq<Event> seqEvents = JavaConversions.asScalaBuffer(eventsSubset).toSeq();
-            final ClassTag<Event> tag = ClassTag$.MODULE$.apply(Event.class);
+            ClassTag<Event> tag = ClassTag$.MODULE$.apply(Event.class);
             return sc.parallelize(seqEvents, sc.defaultParallelism(), tag).toJavaRDD();
         }
 

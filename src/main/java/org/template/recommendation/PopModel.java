@@ -15,7 +15,6 @@ import org.joda.time.Interval;
 import scala.Option;
 import scala.Tuple2;
 import scala.reflect.ClassTag$;
-import scala.util.Random;
 import scala.reflect.ClassTag;
 
 
@@ -91,8 +90,8 @@ public class PopModel {
                 return getEmptyRDD();
             default:
                 logger.warn( "" +
-                        "|Bad rankings param type=[$unknownRankingType] in engine definition params, possibly a bad json value.\n" +
-                        "|Use one of the available parameter values ($RankingType).");
+                        "\n\t|Bad rankings param type=[$unknownRankingType] in engine definition params, possibly a bad json value." +
+                        "\n\t|Use one of the available parameter values ($RankingType).");
                 return getEmptyRDD();
         }
     }
@@ -111,8 +110,8 @@ public class PopModel {
                 .map(Option::get).distinct();
         final JavaRDD<String> itemsRDD = fieldsRDD.map(Tuple2::_1);
 
-        final Random rand = new Random();
-        return actionsRDD.union(itemsRDD).distinct().mapToPair(itemID -> new Tuple2<String, Double>(itemID, rand.nextDouble()));
+        return actionsRDD.union(itemsRDD).distinct()
+                .mapToPair(itemID -> new Tuple2<String, Double>(itemID, Math.random()));
     }
 
     /**
