@@ -1,97 +1,45 @@
 package org.template.recommendation;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.apache.predictionio.controller.Params;
 
 import java.util.Collections;
 import java.util.List;
 import static java.util.stream.Collectors.toList;
 
+@AllArgsConstructor
 public class AlgorithmParams implements Params {
-    private final String appName; // filled in from engine.json
-    private final String indexName; // can optionally be used to specify the elasticsearch index name
-    private final String typeName; // can optionally be used to specify the elasticsearch type name
-    private final String recsModel;  // "all", "collabFiltering", "backfill"
+    @Getter private final String appName; // filled in from engine.json
+    @Getter private final String indexName; // can optionally be used to specify the elasticsearch index name
+    @Getter private final String typeName; // can optionally be used to specify the elasticsearch type name
+    @Getter private final String recsModel;  // "all", "collabFiltering", "backfill"
     private final List<String> eventNames; // names used to ID all user actions
     private final List<String> blacklistEvents;// None means use the primary event, empty array means no filter
     // number of events in user-based recs query
-    private final Integer maxQueryEvents;
-    private final Integer maxEventsPerEventType;
-    private final Integer maxCorrelatorsPerEventType;
-    private final Integer num; // default max # of recs requested
-    private final Float userBias; // will cause the default search engine boost of 1.0
-    private final Float itemBias; // will cause the default search engine boost of 1.0
-    private final Boolean returnSelf; // query building logic defaults this to false
+    @Getter private final Integer maxQueryEvents;
+    @Getter private final Integer maxEventsPerEventType;
+    @Getter private final Integer maxCorrelatorsPerEventType;
+    @Getter private final Integer num; // default max # of recs requested
+    @Getter private final Float userBias; // will cause the default search engine boost of 1.0
+    @Getter private final Float itemBias; // will cause the default search engine boost of 1.0
+    @Getter private final Boolean returnSelf; // query building logic defaults this to false
     private final List<Field> fields; //defaults to no fields
     // leave out for default or popular
     private final List<RankingParams> rankings;
     // name of date property field for when the item is available
-    private final String availableDateName;
+    @Getter private final String availableDateName;
     // name of date property field for when an item is no longer available
-    private final String expireDateName;
+    @Getter private final String expireDateName;
     // used as the subject of a dateRange in queries, specifies the name of the item property
-    private final String dateName;
+    @Getter private final String dateName;
     private final List<IndicatorParams> indicators; // control params per matrix pair
-    private final Long seed;
-
-    public AlgorithmParams(String appName, String indexName,
-                           String typeName, String recsModel,
-                           List<String> eventNames,
-                           List<String> blacklistEvents,
-                           Integer maxQueryEvents,
-                           Integer maxEventsPerEventType,
-                           Integer maxCorrelatorsPerEventType,
-                           Integer num, Float userBias,
-                           Float itemBias,
-                           Boolean returnSelf,
-                           List<Field> fields,
-                           List<RankingParams> rankings,
-                           String availableDateName,
-                           String expireDateName,
-                           String dateName,
-                           List<IndicatorParams> indicators,
-                           Long seed) {
-        this.appName = appName;
-        this.indexName = indexName;
-        this.typeName = typeName;
-        this.recsModel = recsModel;
-        this.eventNames = eventNames;
-        this.blacklistEvents = blacklistEvents;
-        this.maxQueryEvents = maxQueryEvents;
-        this.maxEventsPerEventType = maxEventsPerEventType;
-        this.maxCorrelatorsPerEventType = maxCorrelatorsPerEventType;
-        this.num = num;
-        this.userBias = userBias;
-        this.itemBias = itemBias;
-        this.returnSelf = returnSelf;
-        this.fields = fields;
-        this.rankings = rankings;
-        this.availableDateName = availableDateName;
-        this.expireDateName = expireDateName;
-        this.dateName = dateName;
-        this.indicators = indicators;
-        this.seed = seed;
-    }
-
-    public String getAppName() {
-        return this.appName;
-    }
-
-    public String getIndexName() {
-        return this.indexName;
-    }
-
-    public String getTypeName() {
-        return this.typeName;
-    }
+    @Getter private final Long seed;
 
     public String getRecsModelOrElse(String defaultValue) {
         return this.recsModel == null
                 ? defaultValue
                 : this.getRecsModel();
-    }
-
-    public String getRecsModel() {
-        return this.recsModel;
     }
 
     public List<String> getEventNames() {
@@ -112,17 +60,10 @@ public class AlgorithmParams implements Params {
                 : this.getMaxQueryEvents();
     }
 
-    public Integer getMaxQueryEvents() {
-        return this.maxQueryEvents;
-    }
-
     public Integer getMaxEventsPerEventTypeOrElse(Integer defaultValue) {
         return this.maxEventsPerEventType == null
                 ? defaultValue
                 : this.getMaxEventsPerEventType();
-    }
-    public Integer getMaxEventsPerEventType() {
-        return this.maxEventsPerEventType;
     }
 
     public Integer getMaxCorrelatorsPerEventTypeOrElse(Integer defaultValue) {
@@ -130,16 +71,9 @@ public class AlgorithmParams implements Params {
                 ? defaultValue
                 : this.getMaxCorrelatorsPerEventType();
     }
-    public Integer getMaxCorrelatorsPerEventType() {
-        return this.maxCorrelatorsPerEventType;
-    }
 
     public Integer getNumOrElse(Integer defaultValue) {
         return this.num == null ? defaultValue : this.getNum();
-    }
-
-    public Integer getNum() {
-        return this.num;
     }
 
     public Float getUserBiasOrElse(Float defaultValue) {
@@ -148,28 +82,16 @@ public class AlgorithmParams implements Params {
                 : this.getUserBias();
     }
 
-    public Float getUserBias() {
-        return this.userBias;
-    }
-
     public Float getItemBiasOrElse(Float defaultValue) {
         return this.itemBias == null
                 ? defaultValue
                 : this.getItemBias();
     }
 
-    public Float getItemBias() {
-        return this.itemBias;
-    }
-
     public Boolean getReturnSelfOrElse(Boolean defaultValue) {
         return this.returnSelf == null
                 ? defaultValue
                 : this.getReturnSelf();
-    }
-
-    public Boolean getReturnSelf() {
-        return this.returnSelf;
     }
 
     public List<Field> getFields() {
@@ -188,18 +110,6 @@ public class AlgorithmParams implements Params {
         return this.rankings == null
                 ? Collections.<RankingParams>emptyList()
                 : this.rankings;
-    }
-
-    public String getAvailableDateName() {
-        return this.availableDateName;
-    }
-
-    public String getExpireDateName() {
-        return this.expireDateName;
-    }
-
-    public String getDateName() {
-        return this.dateName;
     }
 
     public List<String> getModelEventNames() {
@@ -227,10 +137,6 @@ public class AlgorithmParams implements Params {
         return this.seed == null
                 ? defaultValue
                 : this.getSeed();
-    }
-
-    public Long getSeed() {
-        return this.seed;
     }
 
     @Override

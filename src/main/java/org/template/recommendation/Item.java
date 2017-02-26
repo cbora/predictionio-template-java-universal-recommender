@@ -1,24 +1,15 @@
 package org.template.recommendation;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 import java.io.Serializable;
 import java.util.Set;
 
+@AllArgsConstructor
 public class Item implements Serializable{
-    private final Set<String> categories;
-    private final String entityId;
-
-    public Item(String entityId, Set<String> categories) {
-        this.categories = categories;
-        this.entityId = entityId;
-    }
-
-    public String getEntityId() {
-        return entityId;
-    }
-
-    public Set<String> getCategories() {
-        return categories;
-    }
+    @Getter private final Set<String> categories;
+    @Getter private final String entityId;
 
     @Override
     public String toString() {
@@ -27,5 +18,4 @@ public class Item implements Serializable{
                 ", entityId='" + entityId + '\'' +
                 '}';
     }
-
 }

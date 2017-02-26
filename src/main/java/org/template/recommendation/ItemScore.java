@@ -1,31 +1,16 @@
 package org.template.recommendation;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
 import java.io.Serializable;
 import java.util.Map;
 
+@AllArgsConstructor
 public class ItemScore implements Serializable, Comparable<ItemScore> {
-    private final String itemEntityId;
-    private final double score;
-    private final Map<String, Double> ranks;
-
-    public ItemScore(String itemEntityId, double score,
-                     Map<String, Double> ranks) {
-        this.itemEntityId = itemEntityId;
-        this.score = score;
-        this.ranks = ranks;
-    }
-
-    public String getItemEntityId() {
-        return itemEntityId;
-    }
-
-    public double getScore() {
-        return score;
-    }
-
-    public Map<String, Double> getRanks() {
-        return this.ranks;
-    }
+    @Getter private final String itemEntityId;
+    @Getter private final double score;
+    @Getter private final Map<String, Double> ranks;
 
     @Override
     public String toString() {

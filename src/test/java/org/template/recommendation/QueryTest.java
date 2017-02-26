@@ -71,9 +71,4 @@ public class QueryTest {
 
     }
 
-    @Test
-    public void toString() throws Exception {
-
-    }
-
 }

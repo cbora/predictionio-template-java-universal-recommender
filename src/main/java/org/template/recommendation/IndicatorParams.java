@@ -1,25 +1,15 @@
 package org.template.recommendation;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import org.apache.predictionio.controller.Params;
 
+@AllArgsConstructor
 public class IndicatorParams implements Params {
-    private final String name; // must match one in eventNames
-    private final Integer maxItemsPerUser; // defaults to maxEventsPerEventType
-    private final Integer maxCorrelatorsPerItem; // defaults to maxCorrelatorsPerEventType
-    private final Double minLLR; // defaults to none, takes precendence over maxCorrelatorsPerItem
-
-
-    public IndicatorParams(String name, Integer maxItemsPerUser,
-                           Integer maxCorrelatorsPerItem, Double minLLR) {
-        this.name = name;
-        this.maxItemsPerUser = maxItemsPerUser;
-        this.maxCorrelatorsPerItem = maxCorrelatorsPerItem;
-        this.minLLR = minLLR;
-    }
-
-    public String getName() {
-        return this.name;
-    }
+    @Getter private final String name; // must match one in eventNames
+    @Getter private final Integer maxItemsPerUser; // defaults to maxEventsPerEventType
+    @Getter private final Integer maxCorrelatorsPerItem; // defaults to maxCorrelatorsPerEventType
+    @Getter private final Double minLLR; // defaults to none, takes precendence over maxCorrelatorsPerItem
 
     @Override
     public String toString() {
