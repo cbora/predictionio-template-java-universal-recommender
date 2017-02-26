@@ -211,7 +211,7 @@ public class AlgorithmParams implements Params {
         } else if (indicatorsIsEmpty) {
             return this.getEventNames();
         } else {
-            this.getIndicators().stream()
+            return this.getIndicators().stream()
                     .map(indicatorParams -> indicatorParams.getName())
                     .collect(toList());
         }

@@ -71,9 +71,11 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
                     String rankingType = rankingParams.getBackfillTypeOrElse(
                             DefaultURAlgorithmParams.DefaultBackfillType
                     );
-                    rankingParams.getNameOrElse(PopModel.nameByType(rankingType));
+                    return rankingParams.getNameOrElse(
+                            PopModel.nameByType.get(rankingType)
+                    );
                 }
-        );
+        ).collect(toList());
         this.dateNames = new ArrayList<>(Arrays.asList(
                 ap.getDateName(),
                 ap.getAvailableDateName(),
