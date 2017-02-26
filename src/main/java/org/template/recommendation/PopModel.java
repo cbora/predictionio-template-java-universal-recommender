@@ -90,8 +90,8 @@ public class PopModel {
                 return getEmptyRDD();
             default:
                 logger.warn( "" +
-                        "\n\t|Bad rankings param type=[$unknownRankingType] in engine definition params, possibly a bad json value." +
-                        "\n\t|Use one of the available parameter values ($RankingType).");
+                        "\n\tBad rankings param type=[$unknownRankingType] in engine definition params, possibly a bad json value." +
+                        "\n\tUse one of the available parameter values ($RankingType).");
                 return getEmptyRDD();
         }
     }
