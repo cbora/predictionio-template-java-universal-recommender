@@ -19,20 +19,15 @@
 
 package org.template.recommendation;
 
-import javafx.util.Pair;
+import scala.Option;
+import scala.Tuple2;
+import org.apache.spark.rdd.RDD;
 import org.apache.predictionio.controller.java.PJavaPreparator;
 import org.apache.spark.SparkContext;
-
-// todo: add mahout java imports
-// todo: need IndexedDataset, BiDictionary objects
-
-import org.apache.spark.api.java.JavaPairRDD;
-
+import org.apache.mahout.math.indexeddataset.IndexedDataset;
+import org.apache.mahout.math.indexeddataset.BiDictionary;
+import org.apache.mahout.sparkbindings.indexeddataset.IndexedDatasetSpark;
 import java.util.*;
-
-//import java.util.ArrayList;
-//import java.util.List;
-//import java.util.Map;
 
 
 public class Preparator extends PJavaPreparator<TrainingData, PreparedData> {
@@ -45,49 +40,46 @@ public class Preparator extends PJavaPreparator<TrainingData, PreparedData> {
      */
     @Override
     public PreparedData prepare(SparkContext sc, TrainingData trainingData) {
+        // now that we have all actions in separate RDDs we must merge any user dictionaries and
+        // make sure the same user ids map to the correct events
+        // note: scala.Option.apply(null) is java's version of None
+        Option<BiDictionary> userDictionary = scala.Option.apply(null);
 
-
-        // todo: make userDiction here
-        // todo: BiDictionary userDictionary = new BiDictionary();
-
-        // todo: List<Pair<String,IndexedDatasetSpark>> indexedDatasets = new ArrayList<>();
+        List<Tuple2<String,IndexedDatasetSpark>> indexedDatasets = new ArrayList<>();
 
         // make sure the same user ids map to the correct events for merged user dictionaries
-        for(Pair<String,JavaPairRDD<String,String>> entry : trainingData.getActions()) {
+        for(Tuple2<String,RDD<Tuple2<String,String>>> entry : trainingData.getActions()) {
 
-            String eventName = entry.getKey();
-            JavaPairRDD<String,String> eventIDS = entry.getValue();
-
-            // todo: IndexedDatasetSpark ids = new IndexedDatasetSpark(eventIDS,userDictionary)(sc);
-
+            String eventName = entry._1;
+            RDD<Tuple2<String,String>> eventIDS = entry._2;
 
             // passing in previous row dictionary will use the values if they exist
             // and append any new ids, so after all are constructed we have all user ids in the last dictionary
-            // todo: update the user dictionary...
-            // todo: userDictionary = ids.rowIDs;
+            IndexedDatasetSpark ids = IndexedDatasetSpark.apply(eventIDS, userDictionary, sc);
+            userDictionary = scala.Option.apply(ids.rowIDs());
 
-
-            // todo: append the transformation to the indexedDatasets Map
-            // todo: indexedDatasets.add(Pair.of(eventName,ids));
+            // append the transformation to the indexedDatasets list
+            indexedDatasets.add(new Tuple2<>(eventName, ids));
         }
 
         // now make sure all matrices have identical row space since this corresponds to all users
-        // todo: int numUsers = userDictionary.size();
-        // todo: long numPrimary = indexedDatasets.head._2.matrix.nrow();
-
-        // later todo: check to see that there are events in primary event IndexedDataset and abort if not.
-
-        // todo: List<Pair<String,IndexedDataset>> rowAdjustedIds = new ArrayList<>();
-
-        /* todo: the following when we have spark datasets
-        for(Pair<String,IndexedDatasetSpark> entry : indexedDatasets) {
-            String eventName = entry.getKey();
-            IndexedDatasetSpark eventIDS = entry.getValue();
-            rowAdjustedIds.add(Pair.of(eventName,eventIDS.create(eventIDS.matrix, userDictionary.get, eventIDS.columnIDs).newRowCardinality(numUsers)));
+        int numUsers = userDictionary.get().size();
+        try {
+            long numPrimary = indexedDatasets.get(0)._2.matrix().nrow();
         }
-        */
+        catch(IndexOutOfBoundsException E) {
+            System.err.println("IndexOutOfBoundsException: Preparator class, indexedDatasets is empty");
+        }
 
-        // todo: return new PreparedData(rowAdjustedIds, trainingData.getFieldsRDD());
-        return null;
+        // todo: check to see that there are events in primary event IndexedDataset and abort if not.
+
+        List<Tuple2<String,IndexedDataset>> rowAdjustedIds = new ArrayList<>();
+
+        for(Tuple2<String,IndexedDatasetSpark> entry : indexedDatasets) {
+            String eventName = entry._1;
+            IndexedDatasetSpark eventIDS = entry._2;
+            rowAdjustedIds.add(new Tuple2<>(eventName,(eventIDS.create(eventIDS.matrix(), userDictionary.get(), eventIDS.columnIDs()).newRowCardinality(numUsers))));
+        }
+        return new PreparedData(rowAdjustedIds, trainingData.getFieldsRDD());
     }
 }
