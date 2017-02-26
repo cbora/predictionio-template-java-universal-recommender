@@ -107,10 +107,10 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Se
                 .filter( pair -> !pair._2().isEmpty())
                 .collect(Collectors.toList());
 
-        String eventNamesLogger = actionRDDs.stream()
-                .map(i -> i._1()).collect(Collectors.joining(", "));
+        // String eventNamesLogger = actionRDDs.stream()
+         //       .map(i -> i._1()).collect(Collectors.joining(", "));
 
-        logger.debug(String.format("Received actions for events %s", eventNamesLogger);
+        // logger.debug(String.format("Received actions for events %s", eventNamesLogger));
 
         JavaRDD<Tuple2<String, PropertyMap>> fieldsRDD = PJavaEventStore.aggregateProperties(
                 dsp.getAppName(),                           // app name
