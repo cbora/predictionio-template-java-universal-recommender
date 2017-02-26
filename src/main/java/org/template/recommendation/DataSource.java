@@ -89,19 +89,18 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Se
         ).repartition(sc.defaultParallelism());
 
         // Now separate events by event name
-        List<Tuple2<String, JavaPairRDD<String, String>>> actionRDDs =
+        List<Tuple2<String, JavaRDD<Tuple2<String,String>>>> actionRDDs =
                 eventNames.stream()
                 .map(eventName -> {
-                    JavaPairRDD<String, String> actionRDD =
+                    JavaRDD<Tuple2<String, String>> actionRDD =
                             eventsRDD.filter(event -> { return !event.entityId().isEmpty()
                             && !event.targetEntityId().get().isEmpty()
                             && eventName.equals(event.event()); })
-                                    .mapToPair(event -> {
+                                    .map(event -> {
                                         return new Tuple2<String, String>(
                                                 event.entityId(),
                                                 event.targetEntityId().get());
                                     });
-
                     return new Tuple2<>(eventName, actionRDD);
                 })
                 .filter( pair -> !pair._2().isEmpty())
@@ -185,7 +184,7 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Se
 
     @Override
     public Iterable<Event> cleanLEvents() {
-
+        return null;
     }
 }
     
