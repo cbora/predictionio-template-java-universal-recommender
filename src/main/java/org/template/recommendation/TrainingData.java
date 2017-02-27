@@ -1,50 +1,57 @@
 package org.template.recommendation;
 
+import java.util.List;
+import org.apache.predictionio.data.storage.PropertyMap;
 import org.apache.predictionio.controller.SanityCheck;
-import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.rdd.RDD;
+import scala.Tuple2;
 
 import java.io.Serializable;
 
+
 public class TrainingData implements Serializable, SanityCheck {
-    private final JavaPairRDD<String, User> users;
-    private final JavaPairRDD<String, Item> items;
-    private final JavaRDD<UserItemEvent> viewEvents;
-    private final JavaRDD<UserItemEvent> buyEvents;
+    private final List<Tuple2<String, JavaRDD<Tuple2<String,String>>>> actions;
+    private final JavaRDD<Tuple2<String,PropertyMap>> fieldsRDD;
 
-    public TrainingData(JavaPairRDD<String, User> users, JavaPairRDD<String, Item> items, JavaRDD<UserItemEvent> viewEvents, JavaRDD<UserItemEvent> buyEvents) {
-        this.users = users;
-        this.items = items;
-        this.viewEvents = viewEvents;
-        this.buyEvents = buyEvents;
+
+    public TrainingData(List<Tuple2<String, JavaRDD<Tuple2<String,String>>>> actions, JavaRDD<Tuple2<String,PropertyMap>> fieldsRDD) {
+        this.actions = actions;
+        this.fieldsRDD = fieldsRDD;
     }
 
-    public JavaPairRDD<String, User> getUsers() {
-        return users;
+    public List<Tuple2<String, JavaRDD<Tuple2<String,String>>>> getActions() {
+        return actions;
     }
-
-    public JavaPairRDD<String, Item> getItems() {
-        return items;
-    }
-
-    public JavaRDD<UserItemEvent> getViewEvents() {
-        return viewEvents;
-    }
-
-    public JavaRDD<UserItemEvent> getBuyEvents() {
-        return buyEvents;
+    public JavaRDD<Tuple2<String,PropertyMap>> getFieldsRDD() {
+        return fieldsRDD;
     }
 
     @Override
     public void sanityCheck() {
-        if (users.isEmpty()) {
-            throw new AssertionError("User data is empty");
+        if (actions.isEmpty()) {
+            throw new AssertionError("Actions List is empty");
         }
-        if (items.isEmpty()) {
-            throw new AssertionError("Item data is empty");
+        if (fieldsRDD.isEmpty()) {
+            throw new AssertionError("fieldsRDD data is empty");
         }
-        if (viewEvents.isEmpty()) {
-            throw new AssertionError("View Event data is empty");
-        }
+    }
+
+    @Override
+    public String toString() {
+
+        /***JavaSparkContext jsc = new JavaSparkContext();
+        JavaRDD<Tuple2<String, JavaRDD<Tuple2<String, String>>>> as = jsc.parallelize(actions);
+        String a = as.map( t -> {
+            String answer = t._1() + " actions: [count: " + t._2().count() + " ] + sample : " + t._2().take(2).toList();
+            return answer;
+        });
+
+        String b = "Item metadata: [count: "+ fieldsRDD.count() + " sample: " + fieldsRDD.take(2).toList();
+
+        return a + b;
+         **/
+        return "";
     }
 }
