@@ -34,8 +34,9 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Se
     transient private LEvents lEventsDb = Storage.getLEvents(false);
 
     /* Constructor
-     *
-     * @param datasourceparams: parameters of the datasource 
+     * Read specified events from the PEventStore and creates RDDs for each event. A list of pairs (eventName, eventRDD)
+     *  are sent to the Preparator for further processing.
+     *  @param dsp parameters taken from engine.json
      */
     public DataSource(DataSourceParams dsp) {
         super();
@@ -75,6 +76,7 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Se
     }
 
     /* Getter
+     * Reads events from PEventStore and create and RDD for each
      * @param SparkContext object
      * @retrun new TrainingData object
      */
@@ -99,6 +101,8 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Se
 
         JavaSparkContext jsc = new JavaSparkContext();
         JavaRDD<String> eNames = jsc.parallelize(eventNames);
+
+        // now separate the events by event name
         JavaRDD<Tuple2<String, JavaRDD<Tuple2<String, String>>>> eventRDD =
                 eNames.map(
                         eventName -> {
@@ -117,6 +121,7 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Se
         // convert the eventRDD to a list
         List<Tuple2<String, JavaRDD<Tuple2<String, String>>>> eventRDDs = eventRDD.collect();
 
+        // aggregating all $set/$unsets for metadata fields, which are attached to items
         JavaRDD<Tuple2<String, PropertyMap>> fieldsRDD = PJavaEventStore.aggregateProperties(
                 dsp.getAppName(),                                  // app name
                 "item",                                  // entity type
@@ -135,11 +140,11 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Se
     }
 
     public LEvents org$apache$predictionio$core$SelfCleaningDataSource$$lEventsDb() {
-        return lEventsDb;
+        return this.lEventsDb;
     }
 
     public PEvents org$apache$predictionio$core$SelfCleaningDataSource$$pEventsDb() {
-        return pEventsDb;
+        return this.pEventsDb;
     }
 
     public org.apache.predictionio.core.SelfCleaningDataSource.DateTimeOrdering$ DateTimeOrdering() {
@@ -228,6 +233,7 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Se
         return SelfCleaningDataSource$class.cleanPEvents(this, sc);
     }
 
+    @Override
     public void cleanPersistedLEvents() {
         SelfCleaningDataSource$class.cleanPersistedLEvents(this);
     }
