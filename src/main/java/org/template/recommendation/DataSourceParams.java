@@ -2,6 +2,7 @@ package org.template.recommendation;
 
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.predictionio.controller.Params;
 import org.apache.predictionio.core.EventWindow;
@@ -9,10 +10,10 @@ import org.apache.predictionio.core.EventWindow;
 public class DataSourceParams implements Params{
 
     private final String appName;  // appName
-    private final ArrayList<String> eventNames; // List of event names
+    private final List<String> eventNames; // List of event names
     private final EventWindow eventWindow;  // event window
 
-    public DataSourceParams(String appName, ArrayList<String> eventNames, EventWindow eventWindow){
+    public DataSourceParams(String appName, List<String> eventNames, EventWindow eventWindow){
         this.appName = appName;
         this.eventNames = eventNames;
         this.eventWindow = eventWindow;
@@ -28,7 +29,7 @@ public class DataSourceParams implements Params{
     /*
        @return event names
      */
-    public ArrayList<String> getEventNames() {
+    public List<String> getEventNames() {
         return eventNames;
     }
 
