@@ -61,7 +61,7 @@ public final class EsClient {
     /** Delete all data from an instance but do not commit it. Until the "refresh" is done on the index
      *  the changes will not be reflected.
      *  @param indexName will delete all types under this index, types are not used by the UR
-     *  @param refresh
+     *  @param refresh should the index be refreshed so the create is committed
      *  @return true if all is well
      */
     public boolean deleteIndex(String indexName, boolean refresh) {
