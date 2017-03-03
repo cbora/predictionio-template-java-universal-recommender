@@ -8,6 +8,14 @@ addons:
     apt:
       packages:
         - haveged
+<<<<<<< HEAD
 sudo: required
 install:
   sbt compile
+=======
+                          
+sudo: required
+                          
+install:
+  sbt compile
+>>>>>>> 891db4fa059d8b2aad504b61a883a1561645c889

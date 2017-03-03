@@ -21,14 +21,14 @@ package org.template.recommendation;
 
 import scala.Option;
 import scala.Tuple2;
-import org.apache.spark.rdd.RDD;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.predictionio.controller.java.PJavaPreparator;
 import org.apache.spark.SparkContext;
 import org.apache.mahout.math.indexeddataset.IndexedDataset;
 import org.apache.mahout.math.indexeddataset.BiDictionary;
 import org.apache.mahout.sparkbindings.indexeddataset.IndexedDatasetSpark;
-import java.util.*;
 
+import java.util.*;
 
 public class Preparator extends PJavaPreparator<TrainingData, PreparedData> {
 
@@ -48,14 +48,14 @@ public class Preparator extends PJavaPreparator<TrainingData, PreparedData> {
         List<Tuple2<String,IndexedDatasetSpark>> indexedDatasets = new ArrayList<>();
 
         // make sure the same user ids map to the correct events for merged user dictionaries
-        for(Tuple2<String,RDD<Tuple2<String,String>>> entry : trainingData.getActions()) {
+        for(Tuple2<String,JavaPairRDD<String,String>> entry : trainingData.getActions()) {
 
             String eventName = entry._1;
-            RDD<Tuple2<String,String>> eventIDS = entry._2;
+            JavaPairRDD<String,String> eventIDS = entry._2;
 
             // passing in previous row dictionary will use the values if they exist
             // and append any new ids, so after all are constructed we have all user ids in the last dictionary
-            IndexedDatasetSpark ids = IndexedDatasetSpark.apply(eventIDS, userDictionary, sc);
+            IndexedDatasetSpark ids = IndexedDatasetSpark.apply(eventIDS.rdd(), userDictionary, sc);
             userDictionary = scala.Option.apply(ids.rowIDs());
 
             // append the transformation to the indexedDatasets list
@@ -64,14 +64,14 @@ public class Preparator extends PJavaPreparator<TrainingData, PreparedData> {
 
         // now make sure all matrices have identical row space since this corresponds to all users
         int numUsers = userDictionary.get().size();
+
+        // todo: check to see that there are events in primary event IndexedDataset and abort if not.
         try {
             long numPrimary = indexedDatasets.get(0)._2.matrix().nrow();
         }
         catch(IndexOutOfBoundsException E) {
             System.err.println("IndexOutOfBoundsException: Preparator class, indexedDatasets is empty");
         }
-
-        // todo: check to see that there are events in primary event IndexedDataset and abort if not.
 
         List<Tuple2<String,IndexedDataset>> rowAdjustedIds = new ArrayList<>();
 
@@ -80,6 +80,7 @@ public class Preparator extends PJavaPreparator<TrainingData, PreparedData> {
             IndexedDatasetSpark eventIDS = entry._2;
             rowAdjustedIds.add(new Tuple2<>(eventName,(eventIDS.create(eventIDS.matrix(), userDictionary.get(), eventIDS.columnIDs()).newRowCardinality(numUsers))));
         }
+
         return new PreparedData(rowAdjustedIds, trainingData.getFieldsRDD());
     }
 }
