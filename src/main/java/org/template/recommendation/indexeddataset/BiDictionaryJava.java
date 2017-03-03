@@ -13,10 +13,15 @@ import scala.Tuple2;
  * Mini-wrapper for org.apache.mahout.math.indexeddataset.Bimap
  *
  * TODO: We skipped toSeq() function.
+ * TODO: Make BiDictionaryJava a subclass of BiMapJava
  */
 public class BiDictionaryJava{
 
     BiDictionary bdict;
+
+    public BiDictionaryJava(BiDictionary bdict){
+        bdict = bdict;
+    }
 
     public BiDictionaryJava(List<String> l){
         HashMap<String,Integer> m = new HashMap<>();
@@ -30,7 +35,8 @@ public class BiDictionaryJava{
     }
 
     public BiDictionaryJava merge(List<String> keys){
-        
+        BiDictionary newBdict = bdict.merge(JavaConverters.asScalaIterableConverter(keys).asScala().toSeq());
+        return new BiDictionaryJava(newBdict);
     }
 
 }
