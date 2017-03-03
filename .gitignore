@@ -6,6 +6,7 @@
 .history/
 .lib/
 dist/*
+.DS_Store
 target/
 lib_managed/
 src_managed/
