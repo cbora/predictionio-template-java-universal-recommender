@@ -4,9 +4,10 @@ import org.apache.mahout.math.indexeddataset.BiDictionary;
 import org.apache.mahout.sparkbindings.indexeddataset.IndexedDatasetSpark;
 import org.apache.mahout.math.drm.CheckpointedDrm;
 import org.apache.spark.SparkContext;
-import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.mahout.sparkbindings.SparkDistributedContext;
 import org.apache.spark.api.java.JavaRDD;
 import scala.Tuple2;
+import org.apache.predictionio.data.store.java.OptionHelper;
 
 import java.util.Optional;
 
@@ -28,16 +29,16 @@ public class IndexedDatasetJava {
         this.ids = ids;
     }
 
-    public void dfsWrite(String dest, SparkContext sc){
-        // TODO: figure out what should the distributed context be
+    public void dfsWrite(String dest, SparkDistributedContext sc){
         ids.dfsWrite(dest, ids.dfsWrite$default$2(), sc);
     }
 
     public static IndexedDatasetJava apply(JavaRDD<Tuple2<String, String>> rdd,
                                            BiDictionaryJava existingRowIDs,
                                            SparkContext sc){
-        // TODO: make existingRowIds optional
         Optional<BiDictionary> op = Optional.of(existingRowIDs.bdict);
-        return IndexedDatasetSpark.apply(rdd, op, sc);
+        IndexedDatasetSpark newids =  IndexedDatasetSpark.apply(rdd.rdd(),
+                                OptionHelper.<BiDictionary>some(existingRowIDs.bdict), sc);
+        return new IndexedDatasetJava(newids);
     }
 }

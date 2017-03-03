@@ -15,7 +15,7 @@ import scala.Tuple2;
  * TODO: We skipped toSeq() function.
  * TODO: Make BiDictionaryJava a subclass of BiMapJava
  */
-public class BiDictionaryJava{
+public class BiDictionaryJava extends BiMapJava{
 
     BiDictionary bdict;
 
@@ -24,13 +24,11 @@ public class BiDictionaryJava{
     }
 
     public BiDictionaryJava(List<String> l){
-        HashMap<String,Integer> m = new HashMap<>();
+        HashMap<String,Object> m = new HashMap<>();
         for (int i=0;i<l.size(); i++){
             m.put(l.get(i),i);
         }
-        Map<String, Integer> xScala = JavaConverters.mapAsScalaMapConverter(m).asScala().toMap(
-                Predef.<Tuple2<String, Integer>>conforms()
-        );
+        Map<String, Object> xScala = new Map(JavaConverters.mapAsScalaMapConverter(m).asScala());
         this.bdict = new BiDictionary(xScala, null);
     }
 
