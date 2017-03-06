@@ -7,6 +7,7 @@ jdk:
 sudo: false
                           
 install:
+  - mvn -N io.takari:maven:wrapper -Dmaven=3.3.3
   - git clone https://github.com/apache/mahout.git mahout
   - cd mahout
   - git checkout 00a2883ec69b0807a5486c61dfcc7ef27f35ddc6
