@@ -6,6 +6,7 @@ import org.apache.predictionio.controller.EmptyParams;
 import org.apache.predictionio.controller.PDataSource;
 import org.apache.predictionio.core.EventWindow;
 import org.apache.predictionio.core.SelfCleaningDataSource;
+import org.apache.predictionio.core.SelfCleaningDataSource$class;
 import org.apache.predictionio.data.storage.*;
 import org.apache.predictionio.data.store.java.OptionHelper;
 import org.apache.predictionio.data.store.java.PJavaEventStore;
@@ -39,7 +40,6 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Se
     public final DataSourceParams dsp; // Data source param object
 
     public DataSource(DataSourceParams dsp) {
-
         this.dsp = dsp;
         // Draw info
         /***
@@ -89,7 +89,7 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Se
         ).repartition(sc.defaultParallelism());
 
         // Now separate events by event name
-        List<Tuple2<String, JavaRDD<Tuple2<String,String>>>> actionRDDs =
+        List<Tuple2<String, JavaPairRDD<String,String>>> actionRDDs =
                 eventNames.stream()
                 .map(eventName -> {
                     JavaRDD<Tuple2<String, String>> actionRDD =
@@ -101,7 +101,7 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Se
                                                 event.entityId(),
                                                 event.targetEntityId().get());
                                     });
-                    return new Tuple2<>(eventName, actionRDD);
+                    return new Tuple2<>(eventName, JavaPairRDD.fromJavaRDD(actionRDD));
                 })
                 .filter( pair -> !pair._2().isEmpty())
                 .collect(Collectors.toList());
@@ -121,7 +121,9 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Se
                 sc                                          // spark context
         ).repartition(sc.defaultParallelism());
 
-        return new TrainingData(actionRDDs, fieldsRDD);
+        JavaPairRDD fieldsJavaPairRDD = JavaPairRDD.fromJavaRDD(fieldsRDD);
+
+        return new TrainingData(actionRDDs, fieldsJavaPairRDD );
     }
 
     private boolean isSetEvent(Event e) {
@@ -138,52 +140,93 @@ public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Se
     }
 
     @Override
+    public Option<EventWindow> eventWindow() {
+        return SelfCleaningDataSource$class.eventWindow(this);
+    }
+
+    @Override
+    public RDD<Event> getCleanedPEvents(RDD<Event> pEvents) {
+        return SelfCleaningDataSource$class.getCleanedPEvents(this, pEvents);
+    }
+
+    @Override
+    public Iterable<Event> getCleanedLEvents(Iterable<Event> lEvents) {
+        return SelfCleaningDataSource$class.getCleanedLEvents(this, lEvents);
+    }
+
+    @Override
+    public Event recreateEvent(Event x, Option<String> eventId, DateTime creationTime) {
+        return SelfCleaningDataSource$class.recreateEvent(this, x, eventId, creationTime);
+    }
+
+    @Override
+    public Iterable<Event> removeLDuplicates(Iterable<Event> ls) {
+        return SelfCleaningDataSource$class.removeLDuplicates(this, ls);
+    }
+
+    @Override
+    public void removeEvents(Set<String> eventsToRemove, int appId) {
+        SelfCleaningDataSource$class.removeEvents(this, eventsToRemove, appId);
+    }
+
+    @Override
     public RDD<Event> compressPProperties(SparkContext sc, RDD<Event> rdd) {
-        return null;
+        return SelfCleaningDataSource$class.compressPProperties(this, sc, rdd);
     }
 
     @Override
     public Iterable<Event> compressLProperties(Iterable<Event> events) {
-        return null;
+        return SelfCleaningDataSource$class.compressLProperties(this, events);
     }
 
     @Override
     public RDD<Event> removePDuplicates(SparkContext sc, RDD<Event> rdd) {
-        return null;
+        return SelfCleaningDataSource$class.removePDuplicates(this, sc, rdd);
     }
 
     @Override
     public void cleanPersistedPEvents(SparkContext sc) {
-
+        SelfCleaningDataSource$class.cleanPersistedPEvents(this, sc);
     }
 
     @Override
     public void wipePEvents(RDD<Event> newEvents, RDD<String> eventsToRemove, SparkContext sc) {
-
+        SelfCleaningDataSource$class.wipePEvents(this, newEvents, eventsToRemove, sc);
     }
 
     @Override
     public void removePEvents(RDD<String> eventsToRemove, int appId, SparkContext sc) {
-
+        SelfCleaningDataSource$class.removePEvents(this, eventsToRemove, appId, sc);
     }
 
     @Override
     public void wipe(Set<Event> newEvents, Set<String> eventsToRemove) {
-
+        SelfCleaningDataSource$class.wipe(this, newEvents, eventsToRemove);
     }
 
     @Override
     public RDD<Event> cleanPEvents(SparkContext sc) {
-        return null;
+        return SelfCleaningDataSource$class.cleanPEvents(this, sc);
     }
 
     @Override
     public void cleanPersistedLEvents() {
-
+        SelfCleaningDataSource$class.cleanPersistedLEvents(this);
     }
 
     @Override
-    public Iterable<Event> cleanLEvents() {
+    public scala.collection.Iterable<Event> cleanLEvents() {
+        return SelfCleaningDataSource$class.cleanLEvents(this);
+    }
+
+    public LEvents org$apache$predictionio$core$SelfCleaningDataSource$$lEventsDb() {
+        return this.lEventsDb;
+    }
+    public PEvents org$apache$predictionio$core$SelfCleaningDataSource$$pEventsDb() {
+        return this.pEventsDb;
+    }
+    public org.apache.predictionio.core.SelfCleaningDataSource.DateTimeOrdering$ DateTimeOrdering() {
+        //TO-DO
         return null;
     }
 }

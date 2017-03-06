@@ -3,13 +3,14 @@ scala:
   - 2.10.5
 jdk:
   - oraclejdk8
-addons:
-    postgresql: "9.3"
-    apt:
-      packages:
-        - haveged
-                          
-sudo: required
+
+sudo: false
                           
 install:
+  - git clone https://github.com/apache/mahout.git mahout
+  - cd mahout
+  - git checkout 00a2883ec69b0807a5486c61dfcc7ef27f35ddc6
+  - mvn clean install -DskipTests
+
+script:
   sbt compile

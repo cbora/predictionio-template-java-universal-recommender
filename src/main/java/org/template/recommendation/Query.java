@@ -13,7 +13,7 @@ public class Query implements Serializable{
     @Getter private final Float userBias; // default: whatever is in algorithm params or 1
     @Getter private final String item; // must be a user or item id
     @Getter private final Float itemBias; // default: whatever is in algorithm params or 1
-    @Getter private final List<Field> fields; // default: whatever is in algorithm params or None
+    private final List<Field> fields; // default: whatever is in algorithm params or None
     @Getter private final String currentDate; // if used will override dateRange filter, currentDate must lie between the item's
     // expireDateName value and availableDateName value, all are ISO 8601 dates
     @Getter private final DateRange dateRange; // optional before and after filter applied to a date field
