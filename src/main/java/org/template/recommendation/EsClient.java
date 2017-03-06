@@ -2,8 +2,16 @@ package org.template.recommendation;
 
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.predictionio.data.storage.elasticsearch.StorageClient;
+import org.apache.predictionio.data.store.java.OptionHelper;
+import org.apache.spark.api.java.JavaRDD;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
+import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.cluster.metadata.AliasMetaData;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.collect.UnmodifiableIterator;
+import org.elasticsearch.common.hppc.cursors.ObjectCursor;
+import org.elasticsearch.search.SearchHit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.predictionio.data.storage.*;
@@ -17,6 +25,8 @@ import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsReques
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.client.transport.TransportClient;
+import org.elasticsearch.spark.rdd.EsSpark;
+
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.joda.time.DateTime;
@@ -24,7 +34,12 @@ import org.json4s.jackson.JsonMethods.*;
 //import org.elasticsearch.spark.*;
 import org.elasticsearch.node.NodeBuilder.*;
 import org.elasticsearch.search.SearchHits;
+import scala.Double;
+import scala.Option;
+import scala.Tuple2;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 //import org.json4s.JValue;
@@ -159,7 +174,120 @@ public final class EsClient {
                 "       }" +
                 "    },";
     }
+
+    /**
+     * Create a new index and hot-swap the new after it's indexed and ready to take over, then delete the old
+     * @param alias
+     * @param typeName
+     * @param indexRDD
+     * @param fieldNames
+     * @param typeMappings
+     */
+    public void hotSwap(String alias, String typeName, RDD<Map<String, Object>> indexRDD, List<String> fieldNames, Map<String, String> typeMappings){
+        // get index for alias, change a char, create new one with new id and index it, swap alias and delete old
+        ImmutableOpenMap<String, List<AliasMetaData>> aliasMetadata = client.admin().indices().prepareGetAliases(alias).get().getAliases();
+        String newIndex = alias + "_" + String.valueOf(DateTime.now().getMillis());
+
+        logger.debug("Create new index: " + newIndex + ",  " + typeName + ", "+ fieldNames + ", "+ typeMappings);
+        boolean refresh = false;
+        boolean response = createIndex(newIndex, typeName, fieldNames, typeMappings, refresh);
+
+        String newIndexURI = "/" + newIndex + "/" + typeName;
+
+        Map<String, String> m = new HashMap<String, String>();
+        m.put("es.mapping.id", "id");
+        EsSpark.saveToEs(indexRDD, newIndexURI, scala.collection.JavaConverters.mapAsScalaMap(m));
+
+        if((!aliasMetadata.isEmpty()) && (aliasMetadata.get(alias) != null)
+                && (aliasMetadata.get(alias).get(0) != null)){ // was alias so remove the old one
+            // append the DateTime to the alias to create an index name
+            String oldIndex = aliasMetadata.get(alias).get(0).getIndexRouting();
+            client.admin().indices().prepareAliases()
+                    .removeAlias(oldIndex, alias).addAlias(newIndex, alias)
+                    .execute().actionGet();
+            deleteIndex(oldIndex, refresh); // now can safely delete the old one since it's not used
+        }
+        else {
+            // to-do: could be more than one index with 'alias' so no alias so add one
+            // to clean up any indexes that exist with the alias name
+            String indices = client.admin().indices().prepareGetIndex().get().indices()[0];
+            if (indices.contains(alias)){
+                deleteIndex(alias, refresh);
+            }
+            client.admin().indices()
+                    .prepareAliases()
+                    .addAlias(newIndex, alias)
+                    .execute().actionGet();
+        }
+        // clean out any old index that were the product of a failed train
+        String indices = client.admin().indices().prepareGetIndex().get().indices()[0];
+
+
+        if (indices.contains(alias) && indices != newIndex){
+            deleteIndex(indices, false);
+        }
+    }
+
+    /**
+     * Performs a search using the JSON query String
+     * @param query: the JSON query string parable by ElasticSearch
+     * @param indexName: the index to search
+     * @return a [PredictedResults] collection
+     */
+    public SearchHits search(String query, String indexName){
+        SearchResponse sr = client.prepareSearch(indexName).setSource(query).get();
+
+        return sr.isTimedOut() ? null : sr.getHits();
+    }
+
+    /**
+     * Gets the "source" field of an Elasticsearch document
+     * @param indexName index that contains the doc/item
+     * @param typeName type name used to construct ES REST URI
+     * @param doc for the UR item id
+     * @return source Map<String, Object>  of field names to any valid field values or null if empty
+     */
+    public Map<String, Object> getSource(String indexName, String typeName, String doc){
+        return client.prepareGet(indexName, typeName, doc).execute().actionGet().getSource();
+    }
+
+
+    public String getIndexName(String alias){
+         ImmutableOpenMap<String, List<AliasMetaData>> allIndicesMap = client.admin().indices().getAliases(new GetAliasesRequest(alias)).actionGet().getAliases();
+
+         if( allIndicesMap.size() == 1) { // must be a 1-1 mapping of alias <-> index
+             String indexName = "";
+             UnmodifiableIterator<String> itr = allIndicesMap.keysIt();
+             while (itr.hasNext()) {
+                 indexName = itr.next();
+             }
+             // the one index that alias points to
+             return indexName.equals("") ? null : indexName;
+         }else {
+             // delete all the indices that are pointed to by the alias, they can't be used
+             logger.warn("There is no 1-1 mapping of index to alias so deleting the old indexes that are reference by\"" +
+                    "alias. This may have been caused by a crashed or stopped \"pio train\" operation so try running it again");
+             if ( !allIndicesMap.isEmpty() ){
+                 boolean refresh = true;
+                 for (ObjectCursor<String> indexName : allIndicesMap.keys()){
+
+                     deleteIndex(indexName.value, refresh);
+                 }
+             }
+             return null; // if more than one abort, need to clean up bad aliases
+         }
+    }
+
+
+    public JavaRDD<Tuple2<String, String>> getRDD(String alias, String typeName, SparkContext sc){
+        // TO-DO convert indexName into a JavaRDD<Tuple2<String, String>>
+        String indexName = getIndexName(alias);
+        if (indexName == null){
+            return null;
+        }
+        return null;
+
+    }
+
+
 }
-
-
-
