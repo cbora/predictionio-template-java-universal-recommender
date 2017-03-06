@@ -17,6 +17,7 @@ install:
   - cd mahout
   - git checkout 00a2883ec69b0807a5486c61dfcc7ef27f35ddc6
   - mvn clean install -DskipTests > /dev/null
+  - cd ..
 
 script:
   sbt compile
