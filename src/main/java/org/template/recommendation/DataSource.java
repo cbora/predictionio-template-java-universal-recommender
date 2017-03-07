@@ -4,6 +4,7 @@ import com.google.common.collect.ImmutableMap;
 import lombok.AllArgsConstructor;
 import org.apache.predictionio.controller.EmptyParams;
 import org.apache.predictionio.controller.PDataSource;
+import org.apache.predictionio.controller.java.PJavaDataSource;
 import org.apache.predictionio.core.EventWindow;
 import org.apache.predictionio.core.SelfCleaningDataSource;
 import org.apache.predictionio.core.SelfCleaningDataSource$class;
@@ -30,7 +31,7 @@ import java.util.*;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class DataSource extends PDataSource<TrainingData, EmptyParams, Query, Set<String>>
+public class DataSource extends PJavaDataSource<TrainingData, EmptyParams, Query, Set<String>>
         implements SelfCleaningDataSource {
 
     Logger logger = new Logger(LoggerFactory.getLogger(SelfCleaningDataSource.class));
