@@ -1,150 +1,234 @@
 package org.template.recommendation;
-
 import com.google.common.collect.ImmutableMap;
-import com.google.common.collect.ImmutableSet;
+
+import lombok.AllArgsConstructor;
 import org.apache.predictionio.controller.EmptyParams;
+import org.apache.predictionio.controller.PDataSource;
 import org.apache.predictionio.controller.java.PJavaDataSource;
-import org.apache.predictionio.data.storage.Event;
-import org.apache.predictionio.data.storage.PropertyMap;
+import org.apache.predictionio.core.EventWindow;
+import org.apache.predictionio.core.SelfCleaningDataSource;
+import org.apache.predictionio.core.SelfCleaningDataSource$class;
+import org.apache.predictionio.data.storage.*;
 import org.apache.predictionio.data.store.java.OptionHelper;
 import org.apache.predictionio.data.store.java.PJavaEventStore;
+import org.apache.spark.api.java.function.Function;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.PairFunction;
 import org.apache.spark.rdd.RDD;
 import org.joda.time.DateTime;
+import grizzled.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import scala.Option;
 import scala.Tuple2;
-import scala.Tuple3;
-import scala.collection.JavaConversions;
-import scala.collection.JavaConversions$;
+import scala.collection.Iterable;
 import scala.collection.Seq;
+import scala.collection.immutable.*;
+import scala.collection.immutable.Set;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
+
+import java.util.*;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.stream.Collectors;
 
-public class DataSource extends PJavaDataSource<TrainingData, EmptyParams, Query, Set<String>> {
+public class DataSource extends PJavaDataSource<TrainingData, EmptyParams, Query, Set<String>>
+        implements SelfCleaningDataSource {
 
-    private final DataSourceParams dsp;
+    Logger logger = new Logger(LoggerFactory.getLogger(SelfCleaningDataSource.class));
+    transient PEvents pEventsDb = Storage.getPEvents();
+    transient LEvents lEventsDb = Storage.getLEvents(false);
+
+    public final DataSourceParams dsp; // Data source param object
 
     public DataSource(DataSourceParams dsp) {
         this.dsp = dsp;
+        // Draw info
+        /***
+        drawInfo("Init DataSource", Seq(
+                                        ("===================", "==================="),
+                                        ("App name", dsp.getAppName()),
+                                        ("Event window", dsp.getEventWindow()),
+                                        ("Event names", dsp.getEventNames())
+                                        ))
+        **/
+        
     }
 
-    @Override
+    /* Getter
+     * @return appName
+     */
+    public String getAppName() {
+        return dsp.getAppName();
+    }
+
+    /* Getter
+     * @return EventWindow
+     */
+    public EventWindow getEventWindow() {
+        return dsp.getEventWindow();
+    }
+
+    /* Getter
+     * @retrun new TrainingData object
+     */
     public TrainingData readTraining(SparkContext sc) {
-        JavaPairRDD<String,User> usersRDD = PJavaEventStore.aggregateProperties(
-                dsp.getAppName(),
-                "user",
-                OptionHelper.<String>none(),
-                OptionHelper.<DateTime>none(),
-                OptionHelper.<DateTime>none(),
-                OptionHelper.<List<String>>none(),
-                sc)
-                .mapToPair(new PairFunction<Tuple2<String, PropertyMap>, String, User>() {
-                    @Override
-                    public Tuple2<String, User> call(Tuple2<String, PropertyMap> entityIdProperty) throws Exception {
-                        Set<String> keys = JavaConversions$.MODULE$.setAsJavaSet(entityIdProperty._2().keySet());
-                        Map<String, String> properties = new HashMap<>();
-                        for (String key : keys) {
-                            properties.put(key, entityIdProperty._2().get(key, String.class));
-                        }
 
-                        User user = new User(entityIdProperty._1(), ImmutableMap.copyOf(properties));
+        ArrayList<String> eventNames = dsp.getEventNames(); // get event names
 
-                        return new Tuple2<>(user.getEntityId(), user);
-                    }
-                });
+        // find events associated with the particular app name and eventNames
+        JavaRDD<Event> eventsRDD = PJavaEventStore.find(
+                dsp.getAppName(),                       // app name
+                OptionHelper.<String>none(),                 // channel name
+                OptionHelper.<DateTime>none(),          // start time
+                OptionHelper.<DateTime>none(),          // end time
+                OptionHelper.some("user"),              // entity type
+                OptionHelper.<String>none(),                 // entity id
+                OptionHelper.some(dsp.getEventNames()),                    // event names
+                OptionHelper.some(OptionHelper.some("item")),              // target entity type
+                OptionHelper.<Option<String>>none(),    // target entity id
+                sc                                      // spark context
+        ).repartition(sc.defaultParallelism());
 
-        JavaPairRDD<String, Item> itemsRDD = PJavaEventStore.aggregateProperties(
-                dsp.getAppName(),
-                "item",
-                OptionHelper.<String>none(),
-                OptionHelper.<DateTime>none(),
-                OptionHelper.<DateTime>none(),
-                OptionHelper.<List<String>>none(),
-                sc)
-                .mapToPair(new PairFunction<Tuple2<String, PropertyMap>, String, Item>() {
-                    @Override
-                    public Tuple2<String, Item> call(Tuple2<String, PropertyMap> entityIdProperty) throws Exception {
-                        List<String> categories = entityIdProperty._2().getStringList("categories");
-                        Item item = new Item(entityIdProperty._1(), ImmutableSet.copyOf(categories));
+        // Now separate events by event name
+        List<Tuple2<String, JavaPairRDD<String,String>>> actionRDDs =
+                eventNames.stream()
+                .map(eventName -> {
+                    JavaRDD<Tuple2<String, String>> actionRDD =
+                            eventsRDD.filter(event -> { return !event.entityId().isEmpty()
+                            && !event.targetEntityId().get().isEmpty()
+                            && eventName.equals(event.event()); })
+                                    .map(event -> {
+                                        return new Tuple2<String, String>(
+                                                event.entityId(),
+                                                event.targetEntityId().get());
+                                    });
+                    return new Tuple2<>(eventName, JavaPairRDD.fromJavaRDD(actionRDD));
+                })
+                .filter( pair -> !pair._2().isEmpty())
+                .collect(Collectors.toList());
 
-                        return new Tuple2<>(item.getEntityId(), item);
-                    }
-                });
+        // String eventNamesLogger = actionRDDs.stream()
+         //       .map(i -> i._1()).collect(Collectors.joining(", "));
 
-        JavaRDD<UserItemEvent> viewEventsRDD = PJavaEventStore.find(
-                dsp.getAppName(),
-                OptionHelper.<String>none(),
-                OptionHelper.<DateTime>none(),
-                OptionHelper.<DateTime>none(),
-                OptionHelper.some("user"),
-                OptionHelper.<String>none(),
-                OptionHelper.some(Collections.singletonList("view")),
-                OptionHelper.<Option<String>>none(),
-                OptionHelper.<Option<String>>none(),
-                sc)
-                .map(new Function<Event, UserItemEvent>() {
-                    @Override
-                    public UserItemEvent call(Event event) throws Exception {
-                        return new UserItemEvent(event.entityId(), event.targetEntityId().get(), event.eventTime().getMillis(), UserItemEventType.VIEW);
-                    }
-                });
+        // logger.debug(String.format("Received actions for events %s", eventNamesLogger));
 
-        JavaRDD<UserItemEvent> buyEventsRDD = PJavaEventStore.find(
-                dsp.getAppName(),
-                OptionHelper.<String>none(),
-                OptionHelper.<DateTime>none(),
-                OptionHelper.<DateTime>none(),
-                OptionHelper.some("user"),
-                OptionHelper.<String>none(),
-                OptionHelper.some(Collections.singletonList("buy")),
-                OptionHelper.<Option<String>>none(),
-                OptionHelper.<Option<String>>none(),
-                sc)
-                .map(new Function<Event, UserItemEvent>() {
-                    @Override
-                    public UserItemEvent call(Event event) throws Exception {
-                        return new UserItemEvent(event.entityId(), event.targetEntityId().get(), event.eventTime().getMillis(), UserItemEventType.BUY);
-                    }
-                });
+        JavaRDD<Tuple2<String, PropertyMap>> fieldsRDD = PJavaEventStore.aggregateProperties(
+                dsp.getAppName(),                           // app name
+                "item",                  // entity type
+                OptionHelper.<String>none(),                     // channel name
+                OptionHelper.<DateTime>none(),              // start time
+                OptionHelper.<DateTime>none(),              // end time
+                OptionHelper.<List<String>>none(),          // required entities
+                sc                                          // spark context
+        ).repartition(sc.defaultParallelism());
 
-        return new TrainingData(usersRDD, itemsRDD, viewEventsRDD, buyEventsRDD);
+        JavaPairRDD fieldsJavaPairRDD = JavaPairRDD.fromJavaRDD(fieldsRDD);
+
+        return new TrainingData(actionRDDs, fieldsJavaPairRDD );
+    }
+
+    private boolean isSetEvent(Event e) {
+        return e.event() == "$set" || e.event() == "$unset";
+    }
+
+    public Logger logger() {
+      return this.logger;
     }
 
     @Override
-    public Seq<Tuple3<TrainingData, EmptyParams, RDD<Tuple2<Query, Set<String>>>>> readEval(SparkContext sc) {
-        TrainingData all = readTraining(sc);
-        double[] split = {0.5, 0.5};
-        JavaRDD<UserItemEvent>[] trainingAndTestingViews = all.getViewEvents().randomSplit(split, 1);
-        JavaRDD<UserItemEvent>[] trainingAndTestingBuys = all.getBuyEvents().randomSplit(split, 1);
+    public String appName() {
+        return dsp.getAppName();
+    }
 
-        RDD<Tuple2<Query, Set<String>>> queryActual = JavaPairRDD.toRDD(trainingAndTestingViews[1].union(trainingAndTestingBuys[1]).groupBy(new Function<UserItemEvent, String>() {
-            @Override
-            public String call(UserItemEvent event) throws Exception {
-                return event.getUser();
-            }
-        }).mapToPair(new PairFunction<Tuple2<String, Iterable<UserItemEvent>>, Query, Set<String>>() {
-            @Override
-            public Tuple2<Query, Set<String>> call(Tuple2<String, Iterable<UserItemEvent>> userEvents) throws Exception {
-                Query query = new Query(userEvents._1(), 10, Collections.<String>emptySet(), Collections.<String>emptySet(), Collections.<String>emptySet());
-                Set<String> actualSet = new HashSet<>();
-                for (UserItemEvent event : userEvents._2()) {
-                    actualSet.add(event.getItem());
-                }
-                return new Tuple2<>(query, actualSet);
-            }
-        }));
+    @Override
+    public Option<EventWindow> eventWindow() {
+        return SelfCleaningDataSource$class.eventWindow(this);
+    }
 
-        Tuple3<TrainingData, EmptyParams, RDD<Tuple2<Query, Set<String>>>> setData = new Tuple3<>(new TrainingData(all.getUsers(), all.getItems(), trainingAndTestingViews[0], trainingAndTestingBuys[0]), new EmptyParams(), queryActual);
+    @Override
+    public RDD<Event> getCleanedPEvents(RDD<Event> pEvents) {
+        return SelfCleaningDataSource$class.getCleanedPEvents(this, pEvents);
+    }
 
-        return JavaConversions.asScalaIterable(Collections.singletonList(setData)).toSeq();
+    @Override
+    public Iterable<Event> getCleanedLEvents(Iterable<Event> lEvents) {
+        return SelfCleaningDataSource$class.getCleanedLEvents(this, lEvents);
+    }
+
+    @Override
+    public Event recreateEvent(Event x, Option<String> eventId, DateTime creationTime) {
+        return SelfCleaningDataSource$class.recreateEvent(this, x, eventId, creationTime);
+    }
+
+    @Override
+    public Iterable<Event> removeLDuplicates(Iterable<Event> ls) {
+        return SelfCleaningDataSource$class.removeLDuplicates(this, ls);
+    }
+
+    @Override
+    public void removeEvents(Set<String> eventsToRemove, int appId) {
+        SelfCleaningDataSource$class.removeEvents(this, eventsToRemove, appId);
+    }
+
+    @Override
+    public RDD<Event> compressPProperties(SparkContext sc, RDD<Event> rdd) {
+        return SelfCleaningDataSource$class.compressPProperties(this, sc, rdd);
+    }
+
+    @Override
+    public Iterable<Event> compressLProperties(Iterable<Event> events) {
+        return SelfCleaningDataSource$class.compressLProperties(this, events);
+    }
+
+    @Override
+    public RDD<Event> removePDuplicates(SparkContext sc, RDD<Event> rdd) {
+        return SelfCleaningDataSource$class.removePDuplicates(this, sc, rdd);
+    }
+
+    @Override
+    public void cleanPersistedPEvents(SparkContext sc) {
+        SelfCleaningDataSource$class.cleanPersistedPEvents(this, sc);
+    }
+
+    @Override
+    public void wipePEvents(RDD<Event> newEvents, RDD<String> eventsToRemove, SparkContext sc) {
+        SelfCleaningDataSource$class.wipePEvents(this, newEvents, eventsToRemove, sc);
+    }
+
+    @Override
+    public void removePEvents(RDD<String> eventsToRemove, int appId, SparkContext sc) {
+        SelfCleaningDataSource$class.removePEvents(this, eventsToRemove, appId, sc);
+    }
+
+    @Override
+    public void wipe(Set<Event> newEvents, Set<String> eventsToRemove) {
+        SelfCleaningDataSource$class.wipe(this, newEvents, eventsToRemove);
+    }
+
+    @Override
+    public RDD<Event> cleanPEvents(SparkContext sc) {
+        return SelfCleaningDataSource$class.cleanPEvents(this, sc);
+    }
+
+    @Override
+    public void cleanPersistedLEvents() {
+        SelfCleaningDataSource$class.cleanPersistedLEvents(this);
+    }
+
+    @Override
+    public scala.collection.Iterable<Event> cleanLEvents() {
+        return SelfCleaningDataSource$class.cleanLEvents(this);
+    }
+
+    public LEvents org$apache$predictionio$core$SelfCleaningDataSource$$lEventsDb() {
+        return this.lEventsDb;
+    }
+    public PEvents org$apache$predictionio$core$SelfCleaningDataSource$$pEventsDb() {
+        return this.pEventsDb;
+    }
+    public org.apache.predictionio.core.SelfCleaningDataSource.DateTimeOrdering$ DateTimeOrdering() {
+        //TO-DO
+        return null;
     }
 }
+    
