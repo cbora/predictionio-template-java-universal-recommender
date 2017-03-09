@@ -29,16 +29,31 @@ public class IndexedDatasetJava {
         this.ids = ids;
     }
 
+    public CheckpointedDrm getMatrix(){
+        return ids.matrix();
+    }
+
+    public BiDictionaryJava getRowIds(){
+        return new BiDictionaryJava(ids.rowIDs());
+    }
+
+    public BiDictionaryJava getColIds(){
+        return new BiDictionaryJava(ids.columnIDs());
+    }
+
     public void dfsWrite(String dest, SparkDistributedContext sc){
         ids.dfsWrite(dest, ids.dfsWrite$default$2(), sc);
     }
 
     public static IndexedDatasetJava apply(JavaRDD<Tuple2<String, String>> rdd,
-                                           BiDictionaryJava existingRowIDs,
+                                           Optional<BiDictionaryJava> existingRowIDs,
                                            SparkContext sc){
-        Optional<BiDictionary> op = Optional.of(existingRowIDs.bdict);
+        if (!existingRowIDs.isPresent()){
+            throw new NullPointerException("No BiDictionary found");
+        }
+        Optional<BiDictionary> op = Optional.of(existingRowIDs.get().bdict);
         IndexedDatasetSpark newids =  IndexedDatasetSpark.apply(rdd.rdd(),
-                                OptionHelper.<BiDictionary>some(existingRowIDs.bdict), sc);
+                                OptionHelper.<BiDictionary>some(existingRowIDs.get().bdict), sc);
         return new IndexedDatasetJava(newids);
     }
 }
