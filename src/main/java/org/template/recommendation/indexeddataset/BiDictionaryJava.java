@@ -31,7 +31,7 @@ public class BiDictionaryJava extends BiMapJava{
             m.put(l.get(i),i);
         }
         Map<String, Object> xScala = JavaConverters$.MODULE$.mapAsScalaMapConverter(m).asScala().toMap(
-                scala.Predef$.MODULE$.conforms()g
+                scala.Predef$.MODULE$.conforms()
         );
         this.bdict = new BiDictionary(xScala, null);
     }
