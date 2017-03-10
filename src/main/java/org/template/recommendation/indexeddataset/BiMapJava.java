@@ -4,6 +4,7 @@ import java.util.HashMap;
 import org.apache.mahout.math.indexeddataset.BiMap;
 import scala.collection.JavaConverters;
 import scala.collection.immutable.Map;
+import scala.collection.JavaConverters$;
 
 /**
  * Created by Alvin Zhu on 2/27/17.
@@ -29,7 +30,13 @@ public class BiMapJava<K,V> {
     http://stackoverflow.com/questions/11903167/convert-java-util-hashmap-to-scala-collection-immutable-map-in-java
      */
     public BiMapJava(HashMap<K,V> x){
-        Map<K,V> xScala = new Map<K,V>(JavaConverters.mapAsScalaMapConverter(x).asScala());
+        Map xScala = JavaConverters$.MODULE$.mapAsScalaMapConverter(x).asScala().toMap(
+                scala.Predef$.MODULE$.<scala.Tuple2<K, V>>conforms()
+        );
+/*
+scala.collection.mutable.Map<K,V> xMut = JavaConverters.mapAsScalaMapConverter(x).asScala();
+Map<K,V> xScala = new scala.collection.immutable.HashMap(JavaConverters.mapAsScalaMapConverter(x).asScala().toSeq());
+*/
         bmap = new BiMap(xScala, null);
     }
 
