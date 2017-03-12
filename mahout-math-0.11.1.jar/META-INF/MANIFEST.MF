@@ -1,0 +1,13 @@
+Manifest-Version: 1.0
+Implementation-Vendor: The Apache Software Foundation
+Implementation-Title: Mahout Math
+Implementation-Version: 0.11.1
+Implementation-Vendor-Id: org.apache.mahout
+Built-By: smarthi
+Build-Jdk: 1.7.0_80
+Specification-Vendor: The Apache Software Foundation
+Specification-Title: Mahout Math
+Created-By: Apache Maven 3.3.3
+Specification-Version: 0.11.1
+Archiver-Version: Plexus Archiver
+

@@ -13,10 +13,10 @@ public class RecommendationEngine extends EngineFactory {
 
     @Override
     public BaseEngine<EmptyParams, Query, PredictedResult, Set<String>> apply() {
-        return new Engine<>(
+        return new Engine(
                 DataSource.class,
                 Preparator.class,
-                Collections.<String, Class<? extends BaseAlgorithm<PreparedData, ?, Query, PredictedResult>>>singletonMap("algo", Algorithm.class),
+                Collections.<String, Class<? extends BaseAlgorithm<PreparedData, ?, Query, PredictedResult>>>singletonMap("ur", Algorithm.class),
                 Serving.class
         );
     }

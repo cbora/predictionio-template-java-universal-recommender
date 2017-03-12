@@ -26,3 +26,4 @@ libraryDependencies ++= Seq(
   "com.google.guava" % "guava" % "12.0",
   "org.jblas" % "jblas" % "1.2.4"
 )
+
