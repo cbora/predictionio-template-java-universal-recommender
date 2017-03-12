@@ -183,7 +183,7 @@ public final class EsClient {
      * @param fieldNames
      * @param typeMappings
      */
-    public void hotSwap(String alias, String typeName, RDD<Map<String, Object>> indexRDD, List<String> fieldNames, Map<String, String> typeMappings){
+    public void hotSwap(String alias, String typeName, JavaRDD<Map<String, Object>> indexRDD, List<String> fieldNames, Map<String, String> typeMappings){
         // get index for alias, change a char, create new one with new id and index it, swap alias and delete old
         ImmutableOpenMap<String, List<AliasMetaData>> aliasMetadata = client.admin().indices().prepareGetAliases(alias).get().getAliases();
         String newIndex = alias + "_" + String.valueOf(DateTime.now().getMillis());
