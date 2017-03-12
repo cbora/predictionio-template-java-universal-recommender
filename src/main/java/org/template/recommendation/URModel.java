@@ -90,13 +90,13 @@ public class URModel {
         return true;
     }
 
-    public JavaPairRDD<String, Map<String,JsonAST.JValue>> groupAll(
+    private JavaPairRDD<String, Map<String,JsonAST.JValue>> groupAll(
             List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> fields) {
         // fields.fold(sc.emptyRDD[(ItemID, ItemProps)])(_ ++ _).reduceByKey(_ ++ _)
         return null;
     }
 
-    public static Object extractJvalue(List<String> dateNames, String key, Object value) {
+    private static Object extractJvalue(List<String> dateNames, String key, Object value) {
         if (value instanceof JsonAST.JArray) {
             List<Object> list = new LinkedList<>();
             scala.collection.Iterator<Object> iter = ((JsonAST.JArray) value).values().iterator();
