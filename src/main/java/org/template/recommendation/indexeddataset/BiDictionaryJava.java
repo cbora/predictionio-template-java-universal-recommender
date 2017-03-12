@@ -3,6 +3,8 @@ package org.template.recommendation.indexeddataset;
 import org.apache.mahout.math.indexeddataset.BiDictionary;
 import java.util.List;
 import java.util.HashMap;
+
+import scala.collection.JavaConverters$;
 import scala.collection.immutable.Map;
 import scala.collection.JavaConverters;
 import scala.Predef;
@@ -28,7 +30,9 @@ public class BiDictionaryJava extends BiMapJava{
         for (int i=0;i<l.size(); i++){
             m.put(l.get(i),i);
         }
-        Map<String, Object> xScala = new Map(JavaConverters.mapAsScalaMapConverter(m).asScala());
+        Map<String, Object> xScala = JavaConverters$.MODULE$.mapAsScalaMapConverter(m).asScala().toMap(
+                scala.Predef$.MODULE$.conforms()
+        );
         this.bdict = new BiDictionary(xScala, null);
     }
 
