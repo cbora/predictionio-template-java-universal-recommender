@@ -72,7 +72,7 @@ public class Preparator extends PJavaPreparator<TrainingData, PreparedData> {
                 IndexedDatasetJava eventIDS = entry._2();
                 rowAdjustedIds.add(new Tuple2<>(eventName,
                         (new IndexedDatasetJava(eventIDS.getMatrix(),userDictionary.get(),eventIDS.getColIds())).
-                        newRowCardinality(userDictionary.get().size())));
+                                newRowCardinality(userDictionary.get().size())));
             }
         }
 
@@ -83,19 +83,3 @@ public class Preparator extends PJavaPreparator<TrainingData, PreparedData> {
         return new PreparedData(rowAdjustedIds, fieldsRDD);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
