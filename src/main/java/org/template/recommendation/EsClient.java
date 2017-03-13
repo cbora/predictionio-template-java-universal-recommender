@@ -3,7 +3,9 @@ package org.template.recommendation;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.predictionio.data.storage.elasticsearch.StorageClient;
 import org.apache.predictionio.data.store.java.OptionHelper;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.rdd.EmptyRDD;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
 import org.elasticsearch.action.search.SearchResponse;
@@ -12,6 +14,7 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.UnmodifiableIterator;
 import org.elasticsearch.common.hppc.cursors.ObjectCursor;
 import org.elasticsearch.search.SearchHit;
+import org.json4s.JsonAST;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.apache.predictionio.data.storage.*;
@@ -37,6 +40,7 @@ import org.elasticsearch.search.SearchHits;
 import scala.Double;
 import scala.Option;
 import scala.Tuple2;
+import scala.collection.JavaConverters;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -279,15 +283,22 @@ public final class EsClient {
     }
 
 
-    public JavaRDD<Tuple2<String, String>> getRDD(String alias, String typeName, SparkContext sc){
-        // TO-DO convert indexName into a JavaRDD<Tuple2<String, String>>
+    public JavaPairRDD<String, Map<String, JsonAST.JValue>> getRDD(String alias, String typeName, SparkContext sc) {
         String indexName = getIndexName(alias);
-        if (indexName == null){
+        if (indexName == null || indexName.equals("")){
             return null;
         }
-        return null;
+        else {
+            String resource = alias + "/" + typeName;
+            JavaRDD<Tuple2<String, String>> tmp = EsSpark.esJsonRDD(sc, resource).toJavaRDD();
+            JavaPairRDD<String,String> esrdd = JavaPairRDD.<String,String>fromJavaRDD(tmp);
 
+            JavaPairRDD<String, Map<String, JsonAST.JValue>> rtn = esrdd.<String,Map<String,JsonAST.JValue>>mapToPair(t ->
+                    new Tuple2<String, Map<String, JsonAST.JValue>> (t._1(),
+                            JavaConverters.mapAsJavaMapConverter(
+                                    DataMap.apply(t._2())
+                                            .fields()).asJava()));
+            return rtn;
+        }
     }
-
-
 }
