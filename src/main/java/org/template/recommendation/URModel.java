@@ -89,11 +89,8 @@ public class URModel {
     private JavaPairRDD<String, Map<String,JsonAST.JValue>> groupAll(
             List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> fields) {
 
-        final JavaPairRDD<String, Map<String,JsonAST.JValue>> acc = RDDUtils.getEmptyPairRDD(sc);
-        for (JavaPairRDD<String, Map<String,JsonAST.JValue>> field : fields) {
-            acc.union(field);
-        }
-        return acc.reduceByKey((m1, m2) -> {m1.putAll(m2); return m1;});
+        final JavaPairRDD<String, Map<String,JsonAST.JValue>> tmp = RDDUtils.unionAllPair(fields, sc);
+        return RDDUtils.combineMapByKey(tmp);
     }
 
     private static Object extractJvalue(List<String> dateNames, String key, JsonAST.JValue value) {
