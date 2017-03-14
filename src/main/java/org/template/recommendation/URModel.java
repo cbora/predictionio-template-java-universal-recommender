@@ -78,7 +78,7 @@ public class URModel {
 
         final JavaRDD<Map<String, Object>> esRDD = groupedRDD.mapPartitions(new EsRDDBuilder(dateNames));
 
-        final List<String> esFields = esRDD.flatMap(x -> x.keySet()).distinct().collect();
+        final List<String> esFields = esRDD.flatMap(Map::keySet).distinct().collect();
 
         logger.info("ES fields[" + esFields.size() + "]:" +  esFields);
 
