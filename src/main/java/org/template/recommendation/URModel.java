@@ -1,10 +1,5 @@
 package org.template.recommendation;
 
-//type UserID = String
-//type ActionID = String
-//type ItemID = String
-//type ItemProps = Map[String, JValue]
-
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -41,6 +36,7 @@ public class URModel {
             Map<String,String> typeMappings,
             boolean nullModel,
             SparkContext sc) {
+
         this.coocurrenceMatrices = coocurrenceMatrices;
         this.propertiesRDDs = propertiesRDDs;
         this.typeMappings = typeMappings;
@@ -66,23 +62,23 @@ public class URModel {
         // do they need to be in Elasticsearch format
         logger.info("Converting cooccurrence matrices into correlators");
 
-        List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> correlatorRDDs = new LinkedList<>();
+        final List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> correlatorRDDs = new LinkedList<>();
         for (Tuple2<String,IndexedDataSet> t : this.coocurrenceMatrices) {
-            String actionName = t._1();
-            IndexedDataSet dataset = t._2();
+            final String actionName = t._1();
+            final IndexedDataSet dataset = t._2();
             correlatorRDDs.add(((IndexedDataSetSpark) dataset).toStringMapRDD(actionName) );
         }
 
         logger.info("Group all properties RDD");
 
-        List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> allRDDs = new LinkedList<>();
+        final List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> allRDDs = new LinkedList<>();
         allRDDs.addAll(correlatorRDDs);
         allRDDs.addAll(propertiesRDDs);
-        JavaPairRDD<String, Map<String,JsonAST.JValue>> groupedRDD = groupAll(allRDDs);
+        final JavaPairRDD<String, Map<String,JsonAST.JValue>> groupedRDD = groupAll(allRDDs);
 
-        JavaRDD<Map<String, Object>> esRDD = groupedRDD.mapPartitions(new EsRDDBuilder(dateNames));
+        final JavaRDD<Map<String, Object>> esRDD = groupedRDD.mapPartitions(new EsRDDBuilder(dateNames));
 
-        List<String> esFields = esRDD.flatMap(x -> x.keySet()).distinct().collect();
+        final List<String> esFields = esRDD.flatMap(x -> x.keySet()).distinct().collect();
 
         logger.info("ES fields[" + esFields.size() + "]:" +  esFields);
 
@@ -93,23 +89,23 @@ public class URModel {
     private JavaPairRDD<String, Map<String,JsonAST.JValue>> groupAll(
             List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> fields) {
 
-        JavaPairRDD<String, Map<String,JsonAST.JValue>> acc = RDDUtils.getEmptyPairRDD(sc);
+        final JavaPairRDD<String, Map<String,JsonAST.JValue>> acc = RDDUtils.getEmptyPairRDD(sc);
         for (JavaPairRDD<String, Map<String,JsonAST.JValue>> field : fields) {
             acc.union(field);
         }
         return acc.reduceByKey((m1, m2) -> {m1.putAll(m2); return m1;});
     }
 
-    private static Object extractJvalue(List<String> dateNames, String key, Object value) {
+    private static Object extractJvalue(List<String> dateNames, String key, JsonAST.JValue value) {
         if (value instanceof JsonAST.JArray) {
-            List<Object> list = new LinkedList<>();
-            scala.collection.Iterator<Object> iter = ((JsonAST.JArray) value).values().iterator();
+            final List<Object> list = new LinkedList<>();
+            final scala.collection.Iterator iter = ((JsonAST.JArray) value).values().iterator();
             while (iter.hasNext())
-                    list.add(extractJvalue(dateNames, key, iter.next()));
+                list.add(extractJvalue(dateNames, key, (JsonAST.JValue) iter.next()));
             return list;
         }
         else if (value instanceof JsonAST.JString) {
-            String s = ((JsonAST.JString) value).s();
+            final String s = ((JsonAST.JString) value).s();
             if (dateNames.contains(key)) {
                 return new DateTime(s).toDate();
             }
@@ -137,7 +133,7 @@ public class URModel {
     private class EsRDDBuilder implements FlatMapFunction
             <Iterator<Tuple2<String, Map<String, JsonAST.JValue>>>, Map<String, Object>> {
 
-        private List<String> dateNames;
+        private final List<String> dateNames;
 
         public EsRDDBuilder(List<String> dateNames) {
             this.dateNames = dateNames;
@@ -145,16 +141,16 @@ public class URModel {
 
         @Override
         public Iterable<Map<String, Object>> call(Iterator<Tuple2<String, Map<String, JsonAST.JValue>>> iter) {
-            List<Map<String, Object>> result = new LinkedList<>();
+            final List<Map<String, Object>> result = new LinkedList<>();
             while(iter.hasNext()) {
-                Tuple2<String, Map<String, JsonAST.JValue>> t = iter.next();
-                String itemId = t._1();
-                Map<String, JsonAST.JValue> itemProps = t._2();
-                Map<String,Object> propsMap = new HashMap<>();
+                final Tuple2<String, Map<String, JsonAST.JValue>> t = iter.next();
+                final String itemId = t._1();
+                final Map<String, JsonAST.JValue> itemProps = t._2();
+                final Map<String,Object> propsMap = new HashMap<>();
 
                 for (Map.Entry<String, JsonAST.JValue> entry : itemProps.entrySet()) {
-                    String propName = entry.getKey();
-                    JsonAST.JValue propValue = entry.getValue();
+                    final String propName = entry.getKey();
+                    final JsonAST.JValue propValue = entry.getValue();
                     propsMap.put(propName, URModel.extractJvalue(dateNames, propName, propValue));
                 }
                 propsMap.put("id", itemId);
