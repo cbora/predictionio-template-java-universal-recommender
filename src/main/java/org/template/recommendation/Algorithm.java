@@ -1,13 +1,20 @@
 package org.template.recommendation;
 
+import org.apache.mahout.math.indexeddataset.IndexedDataset;
 import org.apache.predictionio.controller.java.P2LJavaAlgorithm;
 import org.apache.predictionio.data.storage.NullModel;
+import org.apache.predictionio.data.store.java.OptionHelper;
 import org.apache.spark.SparkContext;
+import org.omg.SendingContext.RunTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import static java.util.stream.Collectors.toList;
+import org.apache.mahout.math.cf.SimilarityAnalysis;
+import org.apache.mahout.math.cf.DownsamplableCrossOccurrenceDataset;
+import org.apache.mahout.math.cf.ParOpts;
+import org.template.recommendation.similarity.SimilarityAnalysisJava;
 
 public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, PredictedResult> {
 
@@ -128,12 +135,89 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
 
     public NullModel calcAll(SparkContext sc, PreparedData preparedData,
                              Boolean calcPopular) {
+
         // if data is empty then throw an exception
+        if(preparedData.getActions().size() == 0 ||
+           preparedData.getActions().get(0)._2().rowIDs().size() == 0){
+            throw new RuntimeException("|There are no users with the primary / conversion event and this is not allowed"+
+                    "|Check to see that your dataset contains the primary event.");
+        }
 
         logger.info("Actions read now creating correlators");
+        List<IndexedDataset> cooccurrenceIDS = new ArrayList<IndexedDataset>();
+        List<IndexedDataset> iDs = preparedData.getActions().stream().map(p -> p._2()).collect(toList());
+        if (ap.getIndicators().size() == 0){
+            cooccurrenceIDS = SimilarityAnalysisJava.cooccurrencesIDSs(
+                    iDs.toArray(new IndexedDataset[iDs.size()]),
+                    //random seed
+                    ap.getSeed() == null ? (int) System.currentTimeMillis() : ap.getSeed().intValue(),
+                    //maxInterestingItemsPerThing
+                    ap.getMaxCorrelatorsPerEventType() == null ? DefaultURAlgorithmParams.DefaultMaxCorrelatorsPerEventType
+                        : ap.getMaxCorrelatorsPerEventType(),
+                    // maxNumInteractions
+                    ap.getMaxEventsPerEventType() == null ? DefaultURAlgorithmParams.DefaultMaxEventsPerEventType
+                            : ap.getMaxEventsPerEventType(),
+                    defaultParOpts()
+            );
+        }else{
+            // using params per matrix pair, these take the place of eventNames, maxCorrelatorsPerEventType,
+            // and maxEventsPerEventType!
+            List<IndicatorParams> indicators = ap.getIndicators();
+            List<DownsamplableCrossOccurrenceDataset> datasets=new ArrayList<DownsamplableCrossOccurrenceDataset>();
+            for (int i=0;i<iDs.size();i++){
+                datasets.add(
+                        new DownsamplableCrossOccurrenceDataset(
+                                iDs.get(i),
+                                indicators.get(i).getMaxItemsPerUser() == null ? DefaultURAlgorithmParams.DefaultMaxEventsPerEventType
+                                    : indicators.get(i).getMaxItemsPerUser(),
+                                indicators.get(i).getMaxCorrelatorsPerItem() == null ? DefaultURAlgorithmParams.DefaultMaxCorrelatorsPerEventType
+                                        : indicators.get(i).getMaxCorrelatorsPerItem(),
+                                OptionHelper.<Object>some(indicators.get(i).getMinLLR()),
+                                OptionHelper.<ParOpts>some(defaultParOpts())
+
+                        )
+                );
+            }
+
+            cooccurrenceIDS = SimilarityAnalysisJava.crossOccurrenceDownsampled(
+                    datasets,
+                    ap.getSeed() == null ?  (int)System.currentTimeMillis(): ap.getSeed().intValue());
+
+        }
+
+        val cooccurrenceCorrelators = cooccurrenceIDSs.zip(data.actions.map(_._1)).map(_.swap) //add back the actionNames
+
+        val propertiesRDD: RDD[(ItemID, ItemProps)] = if (calcPopular) {
+            val ranksRdd = getRanksRDD(data.fieldsRDD)
+            data.fieldsRDD.fullOuterJoin(ranksRdd).map {
+                case (item, (Some(fieldsPropMap), Some(rankPropMap))) => item -> (fieldsPropMap ++ rankPropMap)
+                case (item, (Some(fieldsPropMap), None))              => item -> fieldsPropMap
+                case (item, (None, Some(rankPropMap)))                => item -> rankPropMap
+                case (item, _)                                        => item -> Map.empty
+            }
+        } else {
+            sc.emptyRDD
+        }
+
+        logger.info("Correlators created now putting into URModel")
+        new URModel(
+                coocurrenceMatrices = cooccurrenceCorrelators,
+                propertiesRDDs = Seq(propertiesRDD),
+                typeMappings = getRankingMapping).save(dateNames, esIndex, esType)
+        new NullModel
+
+
         throw new RuntimeException("Not yet implemented; waiting on algo team");
 
     }
+
+    private ParOpts defaultParOpts(){
+        return new ParOpts(-1, -1, true);
+    }
+
+    /*
+    * Convert preparedData.actions() to IndexedDataset array*/
+//    private IndexedDataSet
 
     public NullModel calcAll(SparkContext sc, PreparedData preparedData) {
         return calcAll(sc, preparedData, true);
