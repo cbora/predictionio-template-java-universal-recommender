@@ -87,12 +87,12 @@ public class PopModel {
             case RankingType.Random:
                 return calcRandom(eventStore, interval);
             case RankingType.UserDefined:
-                return getEmptyRDD();
+                return RDDUtils.getEmptyPairRDD(sc);
             default:
                 logger.warn( "" +
-                        "\n\t|Bad rankings param type=[$unknownRankingType] in engine definition params, possibly a bad json value." +
-                        "\n\t|Use one of the available parameter values ($RankingType).");
-                return getEmptyRDD();
+                        "\n\tBad rankings param type=[$unknownRankingType] in engine definition params, possibly a bad json value." +
+                        "\n\tUse one of the available parameter values ($RankingType).");
+                return RDDUtils.getEmptyPairRDD(sc);
         }
     }
 
@@ -153,7 +153,7 @@ public class PopModel {
                     .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
         }
         else {
-            return getEmptyRDD();
+            return RDDUtils.getEmptyPairRDD(sc);
         }
 
         /* alt way
@@ -195,23 +195,11 @@ public class PopModel {
                         .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
             }
             else {
-                return getEmptyRDD();
+                return RDDUtils.getEmptyPairRDD(sc);
             }
         }
         else {
-            return getEmptyRDD();
+            return RDDUtils.getEmptyPairRDD(sc);
         }
-    }
-
-    /**
-     * Generate an empty JavaPairRDD
-     * @param <K> type of key in key-value pair
-     * @param <V> type of value in key-value pair
-     * @return JavaPairRDD &lt K,V &gt
-     */
-    private <K,V> JavaPairRDD<K,V> getEmptyRDD() {
-        final ClassTag<Tuple2<K, V>> tag = ClassTag$.MODULE$.apply(Tuple2.class);
-        final JavaRDD<Tuple2<K, V>> empty = sc.emptyRDD(tag).toJavaRDD();
-        return JavaPairRDD.fromJavaRDD(empty);
     }
 }

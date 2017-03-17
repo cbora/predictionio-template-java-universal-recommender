@@ -11,14 +11,13 @@ public class RankingType {
     public static final String UserDefined = "userDefined";
     public static final String Random = "random";
 
-    public List<String> toList() {
+    public static List<String> toList() {
         List<String> list = new LinkedList<>();
         list.addAll(Arrays.asList(new String[]{Popular, Trending, Hot, UserDefined, Random}));
         return list;
     }
 
-    @Override
-    public String toString() {
+    public static String asString() {
         return String.format("%s, %s, %s, %s, %s", Popular, Trending, Hot, UserDefined, Random);
     }
 }
