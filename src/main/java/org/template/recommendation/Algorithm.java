@@ -205,24 +205,25 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> propertiesRDD =
             new ArrayList<>();
 
-        if (calcPopular) {
-            val ranksRdd = getRanksRDD(data.fieldsRDD)
-            data.fieldsRDD.fullOuterJoin(ranksRdd).map {
-                case (item, (Some(fieldsPropMap), Some(rankPropMap))) => item -> (fieldsPropMap ++ rankPropMap)
-                case (item, (Some(fieldsPropMap), None))              => item -> fieldsPropMap
-                case (item, (None, Some(rankPropMap)))                => item -> rankPropMap
-                case (item, _)                                        => item -> Map.empty
-            }
-        } else {
-            sc.emptyRDD
-        }
-
-        logger.info("Correlators created now putting into URModel")
-        new URModel(
-                coocurrenceMatrices = cooccurrenceCorrelators,
-                propertiesRDDs = Seq(propertiesRDD),
-                typeMappings = getRankingMapping).save(dateNames, esIndex, esType)
-        new NullModel
+//        if (calcPopular) {
+//
+//            JavaPairRDD<String, Map<String, JsonAST.JValue>> ranksRdd = getRanksRDD(preparedData.getFieldsRDD(), sc);
+//            data.fieldsRDD.fullOuterJoin(ranksRdd).map {
+//                case (item, (Some(fieldsPropMap), Some(rankPropMap))) => item -> (fieldsPropMap ++ rankPropMap)
+//                case (item, (Some(fieldsPropMap), None))              => item -> fieldsPropMap
+//                case (item, (None, Some(rankPropMap)))                => item -> rankPropMap
+//                case (item, _)                                        => item -> Map.empty
+//            }
+//        } else {
+//            sc.emptyRDD
+//        }
+//
+//        logger.info("Correlators created now putting into URModel")
+//        new URModel(
+//                coocurrenceMatrices = cooccurrenceCorrelators,
+//                propertiesRDDs = Seq(propertiesRDD),
+//                typeMappings = getRankingMapping).save(dateNames, esIndex, esType)
+//        new NullModel
 
 
         throw new RuntimeException("Not yet implemented; waiting on algo team");
