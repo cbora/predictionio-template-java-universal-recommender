@@ -52,13 +52,13 @@ public class IndexedDatasetJava {
         }
         Optional<BiDictionary> op = Optional.of(existingRowIDs.get().bdict);
         IndexedDatasetSpark newids =  IndexedDatasetSpark.apply(rdd.rdd(),
-                                OptionHelper.<BiDictionary>some(existingRowIDs.get().bdict), sc);
+                        OptionHelper.<BiDictionary>some(existingRowIDs.get().bdict), sc);
         return new IndexedDatasetJava(newids);
     }
 
     public IndexedDatasetJava newRowCardinality(int n){
         return new IndexedDatasetJava(ids.matrix().newRowCardinality(n),
-                                      new BiDictionaryJava(ids.rowIDs()),
-                                      new BiDictionaryJava(ids.columnIDs()));
+                new BiDictionaryJava(ids.rowIDs()),
+                new BiDictionaryJava(ids.columnIDs()));
     }
 }
