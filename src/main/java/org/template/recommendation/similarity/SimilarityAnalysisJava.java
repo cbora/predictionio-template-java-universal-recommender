@@ -7,9 +7,7 @@ import org.apache.mahout.math.cf.ParOpts;
 import org.apache.mahout.math.indexeddataset.IndexedDataset;
 import org.apache.mahout.math.cf.SimilarityAnalysis;
 
-/**
- * Created by zhuyifan on 3/17/17.
- */
+
 public class SimilarityAnalysisJava {
 
     public static List<IndexedDataset> crossOccurrenceDownsampled(

@@ -1,6 +1,9 @@
 package org.template.recommendation.indexeddataset;
 
+import org.apache.mahout.math.drm.DistributedContext;
 import org.apache.mahout.math.indexeddataset.BiDictionary;
+import org.apache.mahout.math.indexeddataset.IndexedDataset;
+import org.apache.mahout.math.indexeddataset.Schema;
 import org.apache.mahout.sparkbindings.indexeddataset.IndexedDatasetSpark;
 import org.apache.mahout.math.drm.CheckpointedDrm;
 import org.apache.spark.SparkContext;
@@ -13,7 +16,7 @@ import java.util.Optional;
 /**
  * Created by Alvin Zhu on 3/1/17.
  */
-public class IndexedDatasetJava {
+public class IndexedDatasetJava implements IndexedDataset {
     IndexedDatasetSpark ids;
 
     public IndexedDatasetJava(){}
@@ -39,6 +42,16 @@ public class IndexedDatasetJava {
     public BiDictionaryJava getColIds(){
         return new BiDictionaryJava(ids.columnIDs());
     }
+
+    public BiDictionary columnIDs(){return ids.columnIDs();}
+    public BiDictionary rowIDs(){return ids.rowIDs();}
+    public void dfsWrite(String s, Schema schema, DistributedContext dc){
+        ids.dfsWrite(s, schema, dc);
+    }
+    public IndexedDataset create(CheckpointedDrm<Object> drm, BiDictionary colIds, BiDictionary rowIds){
+        return ids.create(drm, colIds, rowIds);
+    }
+    public CheckpointedDrm matrix() {return ids.matrix();}
 
     public void dfsWrite(String dest, SparkDistributedContext sc){
         ids.dfsWrite(dest, ids.dfsWrite$default$2(), sc);

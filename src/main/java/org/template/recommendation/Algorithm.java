@@ -6,17 +6,15 @@ import org.apache.predictionio.data.storage.NullModel;
 import org.apache.predictionio.data.store.java.OptionHelper;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
 import org.json4s.JsonAST;
-import org.omg.SendingContext.RunTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import static java.util.stream.Collectors.toList;
-import org.apache.mahout.math.cf.SimilarityAnalysis;
 import org.apache.mahout.math.cf.DownsamplableCrossOccurrenceDataset;
 import org.apache.mahout.math.cf.ParOpts;
+import org.template.recommendation.indexeddataset.IndexedDatasetJava;
 import org.template.recommendation.similarity.SimilarityAnalysisJava;
 import scala.Tuple2;
 import scala.concurrent.duration.Duration;
@@ -145,14 +143,18 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
 
         // if data is empty then throw an exception
         if(preparedData.getActions().size() == 0 ||
-           preparedData.getActions().get(0)._2().rowIDs().size() == 0){
+           preparedData.getActions().get(0)._2().getRowIds().size() == 0){
             throw new RuntimeException("|There are no users with the primary / conversion event and this is not allowed"+
                     "|Check to see that your dataset contains the primary event.");
         }
 
         logger.info("Actions read now creating correlators");
         List<IndexedDataset> cooccurrenceIDS = new ArrayList<IndexedDataset>();
-        List<IndexedDataset> iDs = preparedData.getActions().stream().map(p -> p._2()).collect(toList());
+        List<IndexedDatasetJava> iDs = new ArrayList<>();
+        for (Tuple2<String, IndexedDatasetJava> p : preparedData.getActions()){
+            iDs.add(p._2());
+        }
+
         if (ap.getIndicators().size() == 0){
             cooccurrenceIDS = SimilarityAnalysisJava.cooccurrencesIDSs(
                     iDs.toArray(new IndexedDataset[iDs.size()]),
@@ -202,38 +204,75 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
             ));
         }
 
-        List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> propertiesRDD =
-            new ArrayList<>();
+        JavaPairRDD<String, Map<String, JsonAST.JValue>> propertiesRDD;
+        if (calcPopular) {
+            JavaPairRDD<String, Map<String, JsonAST.JValue>> ranksRdd = getRanksRDD(preparedData.getFieldsRDD(), sc);
+            propertiesRDD = preparedData.getFieldsRDD().fullOuterJoin(ranksRdd).mapToPair(new CalcAllFunction());
+        } else {
+            propertiesRDD = RDDUtils.getEmptyPairRDD(sc);
+        }
 
-//        if (calcPopular) {
-//
-//            JavaPairRDD<String, Map<String, JsonAST.JValue>> ranksRdd = getRanksRDD(preparedData.getFieldsRDD(), sc);
-//            data.fieldsRDD.fullOuterJoin(ranksRdd).map {
-//                case (item, (Some(fieldsPropMap), Some(rankPropMap))) => item -> (fieldsPropMap ++ rankPropMap)
-//                case (item, (Some(fieldsPropMap), None))              => item -> fieldsPropMap
-//                case (item, (None, Some(rankPropMap)))                => item -> rankPropMap
-//                case (item, _)                                        => item -> Map.empty
-//            }
-//        } else {
-//            sc.emptyRDD
-//        }
-//
-//        logger.info("Correlators created now putting into URModel")
-//        new URModel(
-//                coocurrenceMatrices = cooccurrenceCorrelators,
-//                propertiesRDDs = Seq(propertiesRDD),
-//                typeMappings = getRankingMapping).save(dateNames, esIndex, esType)
-//        new NullModel
+        logger.info("Correlators created now putting into URModel");
 
+        // singleton list for propertiesRdd
+        ArrayList<JavaPairRDD<String, Map<String, JsonAST.JValue>>> pList = new ArrayList<>();
+        pList.add(propertiesRDD);
+        new URModel(
+//                cooccurrenceCorrelators,
+                null,
+                pList,
+                getRankingMapping(),
+                false,
+                sc).save(dateNames, esIndex, esType);
+        return new NullModel();
+    }
 
-        throw new RuntimeException("Not yet implemented; waiting on algo team");
+    private Map<String,String> getRankingMapping(){
+        HashMap<String, String> out = new HashMap<>();
+        for (String r: rankingFieldNames){
+            out.put(r, "float");
+        }
+        return out;
+    }
 
+    /**
+     * Lambda expression class for calcPopular in calcAll()
+     */
+    private static class CalcAllFunction implements
+            PairFunction<
+                    Tuple2<String,Tuple2<Optional<Map<String,JsonAST.JValue>>,Optional<Map<String, JsonAST.JValue>>>>,
+                    String,
+                    Map<String,JsonAST.JValue>
+                    >{
+        public Tuple2<String,Map<String, JsonAST.JValue>> call(
+                Tuple2<String,Tuple2<Optional<Map<String,JsonAST.JValue>>,Optional<Map<String, JsonAST.JValue>>>> t){
+
+            String item = t._1();
+            Optional<Map<String, JsonAST.JValue>> oFieldsPropMap = t._2()._1();
+            Optional<Map<String, JsonAST.JValue>> oRankPropMap = t._2()._2();
+
+            if (oFieldsPropMap.isPresent() && oRankPropMap.isPresent()){
+                Map<String, JsonAST.JValue> fieldPropMap = oFieldsPropMap.get();
+                Map<String, JsonAST.JValue> rankPropMap = oRankPropMap.get();
+                HashMap<String, JsonAST.JValue> newMap = new HashMap<>(fieldPropMap);
+                newMap.putAll(rankPropMap);
+                return new Tuple2<>(item, newMap);
+
+            }else if (oFieldsPropMap.isPresent()){
+                return new Tuple2<>(item,  oFieldsPropMap.get());
+
+            }else if (oRankPropMap.isPresent()){
+                return new Tuple2<>(item,  oRankPropMap.get());
+
+            }else{
+                return new Tuple2<>(item, new HashMap<String, JsonAST.JValue>());
+            }
+        }
     }
 
     private ParOpts defaultParOpts(){
         return new ParOpts(-1, -1, true);
     }
-
 
     /**
      * Lambda expression class for getRankRDDs()
