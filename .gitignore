@@ -6,6 +6,7 @@
 .history/
 .lib/
 dist/*
+.DS_Store
 target/
 lib_managed/
 src_managed/
@@ -14,3 +15,4 @@ project/plugins/project/
 
 .idea/
 manifest.json
+.travis.yml
