@@ -22,6 +22,8 @@ libraryDependencies ++= Seq(
   "org.apache.mahout"  % "mahout-hdfs" % mahoutVersion
     exclude("com.thoughtworks.xstream", "xstream")
     exclude("org.apache.hadoop", "hadoop-client"),
+  // Elasticsearch integration
+  "org.elasticsearch" %% "elasticsearch-spark" % "2.1.2",
   "org.projectlombok" % "lombok" % "1.16.14",
   "org.scalatest" % "scalatest_2.10" % "2.2.1" % "test",
   "com.google.code.gson"    % "gson"             % "2.5",
