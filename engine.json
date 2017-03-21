@@ -7,6 +7,13 @@
       "appName": "javadase"
     }
   },
+  "sparkConf": {
+    "spark.serializer": "org.apache.spark.serializer.KryoSerializer",
+    "spark.kryo.registrator": "org.apache.mahout.sparkbindings.io.MahoutKryoRegistrator",
+    "spark.kryo.referenceTracking": "false",
+    "spark.kryoserializer.buffer": "300m",
+    "es.index.auto.create": "true"
+  },
   "algorithms": [
     {
       "name": "algo",
