@@ -4,6 +4,8 @@ scala:
 jdk:
   - oraclejdk8
 
+sudo: false
+
 addons:
     postgresql: "9.3"
     apt:
