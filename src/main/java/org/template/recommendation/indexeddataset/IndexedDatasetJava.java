@@ -17,7 +17,7 @@ import java.util.Optional;
  * Created by Alvin Zhu on 3/1/17.
  */
 public class IndexedDatasetJava implements IndexedDataset {
-    IndexedDatasetSpark ids;
+    private IndexedDatasetSpark ids;
 
     public IndexedDatasetJava(){}
 
