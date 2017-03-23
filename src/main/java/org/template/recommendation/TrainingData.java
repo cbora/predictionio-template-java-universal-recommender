@@ -1,16 +1,12 @@
 package org.template.recommendation;
 
 import java.util.List;
-
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 import org.apache.predictionio.data.storage.PropertyMap;
 import org.apache.predictionio.controller.SanityCheck;
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
 import scala.Tuple2;
-
-
+import lombok.AllArgsConstructor;
+import lombok.Getter;
 import java.io.Serializable;
 
 @AllArgsConstructor
