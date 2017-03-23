@@ -14,8 +14,6 @@ import scala.Tuple2;
 import java.util.*;
 import org.slf4j.LoggerFactory;
 import org.apache.mahout.sparkbindings.SparkDistributedContext;
-import scala.collection.*;
-import scala.collection.Map;
 import scala.reflect.ClassTag;
 
 
@@ -82,7 +80,7 @@ public class Conversions {
         return sb.toString();
     }
 
-    public class OptionCollection<T>{
+    public static class OptionCollection<T>{
         private final Optional<List<T>> collectionOpt;
 
         public OptionCollection(Optional<List<T>> collectionOpt) {
@@ -97,7 +95,7 @@ public class Conversions {
     }
 
 
-    public class IndexedDatasetConversions {
+    public static class IndexedDatasetConversions {
         private final IndexedDatasetJava indexedDataset;
         private transient final Logger logger = LoggerFactory.getLogger(IndexedDatasetConversions.class);
 
@@ -107,7 +105,7 @@ public class Conversions {
         }
 
 
-        public JavaPairRDD<String,Map<String,JsonAST.JValue>> toStringMapRDD(String actionName){
+        public JavaPairRDD<String, java.util.Map<String,JsonAST.JValue>> toStringMapRDD(String actionName){
             BiDictionaryJava rowIDDictionary = indexedDataset.getRowIds();
             SparkDistributedContext temp = (SparkDistributedContext) indexedDataset.getMatrix().context();
             SparkContext sc = temp.sc();
@@ -158,12 +156,12 @@ public class Conversions {
 
                     java.util.Map<String,JsonAST.JValue> tmp = new HashMap<>();
                     tmp.put(actionName,values);
-                    Map<String,JsonAST.JValue> rtn = JavaConverters.mapAsScalaMapConverter(tmp).asScala();
+                    //Map<String,JsonAST.JValue> rtn = JavaConverters.mapAsScalaMapConverter(tmp).asScala();
 
-                    return new Tuple2<String, scala.collection.Map<String,JsonAST.JValue>>
-                            (itemId, rtn);
+                    return new Tuple2<String, java.util.Map<String,JsonAST.JValue>>
+                            (itemId, tmp);
                 } catch(IllegalArgumentException e) {
-                    return new Tuple2<String,scala.collection.Map<String,JsonAST.JValue>> (null,null);
+                    return new Tuple2<String, java.util.Map<String,JsonAST.JValue>> (null,null);
                 }
 
             }).filter(ele -> ele != null);
