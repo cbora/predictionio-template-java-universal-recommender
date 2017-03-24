@@ -218,8 +218,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         ArrayList<JavaPairRDD<String, Map<String, JsonAST.JValue>>> pList = new ArrayList<>();
         pList.add(propertiesRDD);
         new URModel(
-//                cooccurrenceCorrelators,
-                null,
+                cooccurrenceCorrelators,
                 pList,
                 getRankingMapping(),
                 false,

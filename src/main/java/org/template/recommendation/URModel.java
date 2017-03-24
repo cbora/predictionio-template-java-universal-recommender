@@ -1,5 +1,7 @@
 package org.template.recommendation;
 
+import org.apache.mahout.math.indexeddataset.IndexedDataset;
+import org.apache.mahout.sparkbindings.indexeddataset.IndexedDatasetSpark;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -8,30 +10,24 @@ import org.elasticsearch.common.joda.time.DateTime;
 import org.json4s.JsonAST;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.template.recommendation.indexeddataset.IndexedDatasetJava;
 import scala.Tuple2;
 
 import java.util.*;
 
 /** Universal Recommender models to save in ES */
 public class URModel {
-    // TODO: use real IndexedDataSet / IndexedDataSetSpark
-    private class IndexedDataSet {}
-    private class IndexedDataSetSpark extends IndexedDataSet {
-        public JavaPairRDD<String, Map<String,JsonAST.JValue>> toStringMapRDD(String s) {
-            return null;
-        }
-    }
 
     private transient static final Logger logger = LoggerFactory.getLogger(URModel.class);
 
-    private final List<Tuple2<String, IndexedDataSet>> coocurrenceMatrices;
+    private final List<Tuple2<String, IndexedDataset>> coocurrenceMatrices;
     private final List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> propertiesRDDs;
     private final Map<String,String> typeMappings;
     private final boolean nullModel;
     private final SparkContext sc;
 
     public URModel(
-            List<Tuple2<String, IndexedDataSet>> coocurrenceMatrices,
+            List<Tuple2<String, IndexedDataset>> coocurrenceMatrices,
             List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> propertiesRDDs,
             Map<String,String> typeMappings,
             boolean nullModel,
@@ -63,10 +59,13 @@ public class URModel {
         logger.info("Converting cooccurrence matrices into correlators");
 
         final List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> correlatorRDDs = new LinkedList<>();
-        for (Tuple2<String,IndexedDataSet> t : this.coocurrenceMatrices) {
+        for (Tuple2<String,IndexedDataset> t : this.coocurrenceMatrices) {
             final String actionName = t._1();
-            final IndexedDataSet dataset = t._2();
-            correlatorRDDs.add(((IndexedDataSetSpark) dataset).toStringMapRDD(actionName) );
+            final IndexedDataset dataset = t._2();
+            final IndexedDatasetSpark IDSpark = (IndexedDatasetSpark) dataset;
+            final IndexedDatasetJava IDJava = new IndexedDatasetJava(IDSpark);
+            final Conversions.IndexedDatasetConversions IDConvert = new Conversions.IndexedDatasetConversions(IDJava);
+            correlatorRDDs.add(IDConvert.toStringMapRDD(actionName));
         }
 
         logger.info("Group all properties RDD");
