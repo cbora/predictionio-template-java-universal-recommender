@@ -23,7 +23,7 @@ public class RankingFieldNameTest {
 
     @Test
     public void toStringTest() throws Exception {
-        String s = "userRank, uniqueRank, popRank, hotRank, unknownRank";
+        String s = "userRank, uniqueRank, popRank, trendRank, hotRank";
 
         assertEquals(s, new RankingFieldName().toString());
     }
