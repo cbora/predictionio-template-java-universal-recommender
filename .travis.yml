@@ -20,4 +20,5 @@ install:
   - cd ..
 
 script:
-  sbt compile
+  - sbt compile
+  - sbt test
