@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+
 import static java.util.stream.Collectors.toList;
 
 public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, PredictedResult> {

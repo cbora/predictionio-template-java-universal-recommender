@@ -5,7 +5,6 @@ import org.apache.predictionio.data.storage.Event;
 import org.apache.predictionio.data.store.java.OptionHelper;
 import org.apache.predictionio.data.store.java.PJavaEventStore;
 import org.apache.spark.SparkContext;
-import org.apache.spark.SparkContext$;
 import org.apache.spark.api.java.JavaRDD;
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
