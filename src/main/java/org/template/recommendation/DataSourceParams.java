@@ -1,12 +1,12 @@
 package org.template.recommendation;
 
 
-import java.util.ArrayList;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import org.apache.predictionio.controller.Params;
 import org.apache.predictionio.core.EventWindow;
+
+import java.util.ArrayList;
 
 @AllArgsConstructor
 public class DataSourceParams implements Params{

@@ -4,7 +4,6 @@ import org.apache.predictionio.controller.EmptyParams;
 import org.apache.predictionio.controller.Engine;
 import org.apache.predictionio.controller.EngineFactory;
 import org.apache.predictionio.core.BaseAlgorithm;
-import org.apache.predictionio.core.BaseDataSource;
 import org.apache.predictionio.core.BaseEngine;
 import scala.collection.immutable.Set;
 

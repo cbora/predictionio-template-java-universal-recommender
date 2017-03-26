@@ -7,6 +7,7 @@ import org.apache.mahout.math.indexeddataset.IndexedDataset;
 import org.apache.predictionio.data.storage.PropertyMap;
 import org.apache.spark.api.java.JavaPairRDD;
 import scala.Tuple2;
+
 import java.io.Serializable;
 import java.util.List;
 
