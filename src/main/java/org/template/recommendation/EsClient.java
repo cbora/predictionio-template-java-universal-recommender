@@ -34,7 +34,7 @@ import org.elasticsearch.common.settings.ImmutableSettings;
 import org.elasticsearch.common.settings.ImmutableSettings;
 import org.joda.time.DateTime;
 import org.json4s.jackson.JsonMethods.*;
-//import org.elasticsearch.spark.*;
+import org.elasticsearch.spark.*;
 import org.elasticsearch.node.NodeBuilder.*;
 import org.elasticsearch.search.SearchHits;
 import scala.Double;
@@ -187,7 +187,7 @@ public final class EsClient {
      * @param fieldNames
      * @param typeMappings
      */
-    public void hotSwap(String alias, String typeName, RDD<Map<String, Object>> indexRDD, List<String> fieldNames, Map<String, String> typeMappings){
+    public void hotSwap(String alias, String typeName, JavaRDD<Map<String, Object>> indexRDD, List<String> fieldNames, Map<String, String> typeMappings){
         // get index for alias, change a char, create new one with new id and index it, swap alias and delete old
         ImmutableOpenMap<String, List<AliasMetaData>> aliasMetadata = client.admin().indices().prepareGetAliases(alias).get().getAliases();
         String newIndex = alias + "_" + String.valueOf(DateTime.now().getMillis());
@@ -200,7 +200,7 @@ public final class EsClient {
 
         Map<String, String> m = new HashMap<String, String>();
         m.put("es.mapping.id", "id");
-        EsSpark.saveToEs(indexRDD, newIndexURI, scala.collection.JavaConverters.mapAsScalaMap(m));
+        EsSpark.saveToEs(JavaRDD.toRDD(indexRDD), newIndexURI, scala.collection.JavaConverters.mapAsScalaMapConverter(m).asScala());
 
         if((!aliasMetadata.isEmpty()) && (aliasMetadata.get(alias) != null)
                 && (aliasMetadata.get(alias).get(0) != null)){ // was alias so remove the old one
