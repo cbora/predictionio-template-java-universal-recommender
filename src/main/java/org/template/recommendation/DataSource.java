@@ -1,9 +1,7 @@
 package org.template.recommendation;
-import com.google.common.collect.ImmutableMap;
 
-import lombok.AllArgsConstructor;
+import grizzled.slf4j.Logger;
 import org.apache.predictionio.controller.EmptyParams;
-import org.apache.predictionio.controller.PDataSource;
 import org.apache.predictionio.controller.java.PJavaDataSource;
 import org.apache.predictionio.core.EventWindow;
 import org.apache.predictionio.core.SelfCleaningDataSource;
@@ -11,23 +9,18 @@ import org.apache.predictionio.core.SelfCleaningDataSource$class;
 import org.apache.predictionio.data.storage.*;
 import org.apache.predictionio.data.store.java.OptionHelper;
 import org.apache.predictionio.data.store.java.PJavaEventStore;
-import org.apache.spark.api.java.function.Function;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.rdd.RDD;
 import org.joda.time.DateTime;
-import grizzled.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Option;
 import scala.Tuple2;
 import scala.collection.Iterable;
-import scala.collection.Seq;
-import scala.collection.immutable.*;
 import scala.collection.immutable.Set;
 
-
-import java.util.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 

@@ -1,6 +1,5 @@
 package org.template.recommendation;
 
-import com.google.gson.Gson;
 import org.junit.Test;
 
 public class QueryTest {
