@@ -6,6 +6,7 @@ import org.apache.predictionio.controller.Params;
 
 import java.util.Collections;
 import java.util.List;
+
 import static java.util.stream.Collectors.toList;
 
 @AllArgsConstructor

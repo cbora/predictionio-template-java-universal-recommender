@@ -1,24 +1,24 @@
 package org.template.recommendation;
 
-import org.apache.predictionio.data.store.java.OptionHelper;
 import org.apache.predictionio.data.storage.Event;
-import org.apache.predictionio.data.store.java.PJavaEventStore;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
+import org.joda.time.DateTime;
+import org.joda.time.Interval;
 import org.joda.time.format.ISODateTimeFormat;
 import org.json4s.JsonAST;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.joda.time.DateTime;
-import org.joda.time.Interval;
 import scala.Option;
 import scala.Tuple2;
-import scala.reflect.ClassTag$;
 import scala.reflect.ClassTag;
+import scala.reflect.ClassTag$;
 
-
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class PopModel {
     private transient static final Logger logger = LoggerFactory.getLogger(PopModel.class);
@@ -90,8 +90,8 @@ public class PopModel {
                 return getEmptyRDD();
             default:
                 logger.warn( "" +
-                        "\n\t|Bad rankings param type=[$unknownRankingType] in engine definition params, possibly a bad json value." +
-                        "\n\t|Use one of the available parameter values ($RankingType).");
+                        "\n\tBad rankings param type=[$unknownRankingType] in engine definition params, possibly a bad json value." +
+                        "\n\tUse one of the available parameter values ($RankingType).");
                 return getEmptyRDD();
         }
     }
