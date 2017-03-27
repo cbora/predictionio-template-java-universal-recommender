@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+
 import static java.util.stream.Collectors.toList;
 import org.apache.mahout.math.cf.DownsamplableCrossOccurrenceDataset;
 import org.apache.mahout.math.cf.ParOpts;

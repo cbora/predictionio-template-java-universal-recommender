@@ -19,14 +19,17 @@
 
 package org.template.recommendation;
 
-import scala.collection.JavaConverters;
-import org.json4s.JsonAST;
-import scala.Tuple2;
-import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.mahout.math.indexeddataset.BiDictionary;
+import org.apache.mahout.math.indexeddataset.IndexedDataset;
+import org.apache.mahout.sparkbindings.indexeddataset.IndexedDatasetSpark;
 import org.apache.predictionio.controller.java.PJavaPreparator;
 import org.apache.spark.SparkContext;
-import org.template.recommendation.indexeddataset.*;
-import java.util.*;
+import org.apache.spark.api.java.JavaPairRDD;
+import scala.Option;
+import scala.Tuple2;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Preparator extends PJavaPreparator<TrainingData, PreparedData> {
 

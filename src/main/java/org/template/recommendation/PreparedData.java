@@ -4,6 +4,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.json4s.JsonAST;
 import org.template.recommendation.indexeddataset.*;
 import scala.Tuple2;
+
 import java.io.Serializable;
 import java.util.*;
 import lombok.AllArgsConstructor;
