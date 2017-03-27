@@ -85,13 +85,14 @@ public final class EsClient {
      */
     public boolean deleteIndex(String indexName, boolean refresh) {
         if (client.admin().indices().exists(new IndicesExistsRequest(indexName)).actionGet().isExists()) {
-            DeleteIndexResponse delete = client.admin().indices().delete(new DeleteIndexRequest(indexName)).actionGet();
+            final DeleteIndexResponse delete = client.admin().indices().delete(new DeleteIndexRequest(indexName)).actionGet();
             if (!delete.isAcknowledged()) {
                 logger.info("Index " + indexName + " wasn't deleted, but may have quietly failed.");
             } else {
                 // now refresh to get it 'committed'
                 // todo: should do this after the new index is created so no index downtime
-                if (refresh) {refreshIndex(indexName);}
+                if (refresh)
+                    refreshIndex(indexName);
             }
 
             return true;
@@ -118,9 +119,9 @@ public final class EsClient {
             boolean refresh) {
 
         if (!client.admin().indices().exists(new IndicesExistsRequest(indexName)).actionGet().isExists()) {
-            StringBuilder mappings = new StringBuilder();
+            final StringBuilder mappings = new StringBuilder();
 
-            String mappingsHead = "" +
+            final String mappingsHead = "" +
                     "{" +
                     "  \"properties\": {";
             mappings.append(mappingsHead);
@@ -133,7 +134,7 @@ public final class EsClient {
                     mappings.append(mappingsField("string"));
             }
 
-            String mappingsTail = "" +
+            final String mappingsTail = "" +
                     "    \"id\": {" +
                     "      \"type\": \"string\"," +
                     "      \"index\": \"not_analyzed\"," +
@@ -145,8 +146,8 @@ public final class EsClient {
                     "}";
             mappings.append(mappingsTail); // any other string is not_analyzed
 
-            CreateIndexRequest cir = new CreateIndexRequest(indexName).mapping(indexType, mappings);
-            CreateIndexResponse create = client.admin().indices().create(cir).actionGet();
+            final CreateIndexRequest cir = new CreateIndexRequest(indexName).mapping(indexType, mappings);
+            final CreateIndexResponse create = client.admin().indices().create(cir).actionGet();
             if (!create.isAcknowledged()) {
                 logger.info("Index " + indexName + " wasn't created, but may have quietly failed.");
             } else {
@@ -187,25 +188,25 @@ public final class EsClient {
      * @param fieldNames
      * @param typeMappings
      */
-    public void hotSwap(String alias, String typeName, JavaRDD<Map<String, Object>> indexRDD, List<String> fieldNames, Map<String, String> typeMappings){
+    public void hotSwap(String alias, String typeName, JavaRDD<Map<String, Object>> indexRDD, List<String> fieldNames, Map<String, String> typeMappings) {
         // get index for alias, change a char, create new one with new id and index it, swap alias and delete old
-        ImmutableOpenMap<String, List<AliasMetaData>> aliasMetadata = client.admin().indices().prepareGetAliases(alias).get().getAliases();
-        String newIndex = alias + "_" + String.valueOf(DateTime.now().getMillis());
+        final ImmutableOpenMap<String, List<AliasMetaData>> aliasMetadata = client.admin().indices().prepareGetAliases(alias).get().getAliases();
+        final String newIndex = alias + "_" + String.valueOf(DateTime.now().getMillis());
 
         logger.debug("Create new index: " + newIndex + ",  " + typeName + ", "+ fieldNames + ", "+ typeMappings);
-        boolean refresh = false;
-        boolean response = createIndex(newIndex, typeName, fieldNames, typeMappings, refresh);
+        final boolean refresh = false;
+        final boolean response = createIndex(newIndex, typeName, fieldNames, typeMappings, refresh);
 
-        String newIndexURI = "/" + newIndex + "/" + typeName;
+        final String newIndexURI = "/" + newIndex + "/" + typeName;
 
-        Map<String, String> m = new HashMap<>();
+        final Map<String, String> m = new HashMap<>();
         m.put("es.mapping.id", "id");
         EsSpark.saveToEs(JavaRDD.toRDD(indexRDD), newIndexURI, scala.collection.JavaConverters.mapAsScalaMapConverter(m).asScala());
 
         if ((!aliasMetadata.isEmpty()) && (aliasMetadata.get(alias) != null)
                 && (aliasMetadata.get(alias).get(0) != null)) { // was alias so remove the old one
             // append the DateTime to the alias to create an index name
-            String oldIndex = aliasMetadata.get(alias).get(0).getIndexRouting();
+            final String oldIndex = aliasMetadata.get(alias).get(0).getIndexRouting();
             client.admin().indices().prepareAliases()
                     .removeAlias(oldIndex, alias).addAlias(newIndex, alias)
                     .execute().actionGet();
@@ -213,7 +214,7 @@ public final class EsClient {
         } else {
             // to-do: could be more than one index with 'alias' so no alias so add one
             // to clean up any indexes that exist with the alias name
-            String indices = client.admin().indices().prepareGetIndex().get().indices()[0];
+            final String indices = client.admin().indices().prepareGetIndex().get().indices()[0];
             if (indices.contains(alias))
                 deleteIndex(alias, refresh);
 
@@ -223,7 +224,7 @@ public final class EsClient {
                     .execute().actionGet();
         }
         // clean out any old index that were the product of a failed train
-        String indices = client.admin().indices().prepareGetIndex().get().indices()[0];
+        final String indices = client.admin().indices().prepareGetIndex().get().indices()[0];
 
         if (indices.contains(alias) && !indices.equals(newIndex))
             deleteIndex(indices, false);
@@ -236,7 +237,7 @@ public final class EsClient {
      * @return a [PredictedResults] collection
      */
     public SearchHits search(String query, String indexName) {
-        SearchResponse sr = client.prepareSearch(indexName).setSource(query).get();
+        final SearchResponse sr = client.prepareSearch(indexName).setSource(query).get();
         return sr.isTimedOut() ? null : sr.getHits();
     }
 
@@ -247,17 +248,17 @@ public final class EsClient {
      * @param doc for the UR item id
      * @return source Map<String, Object>  of field names to any valid field values or null if empty
      */
-    public Map<String, Object> getSource(String indexName, String typeName, String doc){
+    public Map<String, Object> getSource(String indexName, String typeName, String doc) {
         return client.prepareGet(indexName, typeName, doc).execute().actionGet().getSource();
     }
 
 
-    public String getIndexName(String alias){
-         ImmutableOpenMap<String, List<AliasMetaData>> allIndicesMap = client.admin().indices().getAliases(new GetAliasesRequest(alias)).actionGet().getAliases();
+    public String getIndexName(String alias) {
+         final ImmutableOpenMap<String, List<AliasMetaData>> allIndicesMap = client.admin().indices().getAliases(new GetAliasesRequest(alias)).actionGet().getAliases();
 
-         if( allIndicesMap.size() == 1) { // must be a 1-1 mapping of alias <-> index
+         if (allIndicesMap.size() == 1) { // must be a 1-1 mapping of alias <-> index
              String indexName = "";
-             UnmodifiableIterator<String> itr = allIndicesMap.keysIt();
+             final UnmodifiableIterator<String> itr = allIndicesMap.keysIt();
 
              while (itr.hasNext())
                  indexName = itr.next();
@@ -269,7 +270,7 @@ public final class EsClient {
              logger.warn("There is no 1-1 mapping of index to alias so deleting the old indexes that are reference by\"" +
                     "alias. This may have been caused by a crashed or stopped \"pio train\" operation so try running it again");
              if (!allIndicesMap.isEmpty()) {
-                 boolean refresh = true;
+                 final boolean refresh = true;
                  for (ObjectCursor<String> indexName : allIndicesMap.keys())
                      deleteIndex(indexName.value, refresh);
              }
@@ -279,13 +280,13 @@ public final class EsClient {
 
 
     public JavaPairRDD<String, Map<String, JsonAST.JValue>> getRDD(String alias, String typeName, SparkContext sc) {
-        String indexName = getIndexName(alias);
+        final String indexName = getIndexName(alias);
         if (indexName == null || indexName.equals("")) {
             return null;
         } else {
-            String resource = alias + "/" + typeName;
-            JavaRDD<Tuple2<String, String>> tmp = EsSpark.esJsonRDD(sc, resource).toJavaRDD();
-            JavaPairRDD<String,String> esrdd = JavaPairRDD.fromJavaRDD(tmp);
+            final String resource = alias + "/" + typeName;
+            final JavaRDD<Tuple2<String, String>> tmp = EsSpark.esJsonRDD(sc, resource).toJavaRDD();
+            final JavaPairRDD<String,String> esrdd = JavaPairRDD.fromJavaRDD(tmp);
 
             return esrdd.mapToPair(t ->
                     new Tuple2<String, Map<String, JsonAST.JValue>> (t._1(),
