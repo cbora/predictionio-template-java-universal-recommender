@@ -1,10 +1,14 @@
 package org.template.recommendation;
 
+import org.apache.predictionio.data.storage.PropertyMap;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.PairFunction;
+import org.json4s.JsonAST;
 import scala.Tuple2;
+import scala.collection.JavaConverters;
 
 import java.util.Collection;
 import java.util.List;
@@ -92,5 +96,18 @@ public class RDDUtils {
      */
     public static <K,T> JavaPairRDD<K,Collection<T>> combineCollectionByKey(JavaPairRDD<K,Collection<T>> rdd) {
         return rdd.reduceByKey((c1, c2) -> {c1.addAll(c2); return c1;});
+    }
+
+    public static class PropertyMapConverter implements
+            PairFunction<
+                    Tuple2<String, PropertyMap>,
+                    String,
+                    Map<String, JsonAST.JValue>
+                    > {
+        public Tuple2<String, Map<String, JsonAST.JValue>> call(Tuple2<String, PropertyMap> t){
+            Map<String, JsonAST.JValue> Jmap =
+                    JavaConverters.mapAsJavaMapConverter(t._2().fields()).asJava();
+            return new Tuple2<>(t._1(), Jmap);
+        }
     }
 }
