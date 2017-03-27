@@ -12,14 +12,13 @@ public class RankingFieldName {
     public static final String HotRank = "hotRank";
     public static final String UnknownRank = "unknownRank";
 
-    public List<String> toList() {
+    public static List<String> toList() {
         List<String> list = new LinkedList<>();
         list.addAll(Arrays.asList(new String[]{UserRank, UniqueRank, PopRank, TrendRank, HotRank}));
         return list;
     }
 
-    @Override
-    public String toString() {
+    public static String asString() {
         return String.format("%s, %s, %s, %s, %s", UserRank, UniqueRank, PopRank, TrendRank, HotRank);
     }
 }
