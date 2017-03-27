@@ -47,9 +47,9 @@ public class RDDUtils {
      */
     public static <T> JavaRDD<T> unionAll(List<JavaRDD<T>> rddList, SparkContext sc) {
         JavaRDD<T> acc = RDDUtils.getEmptyRDD(sc);
-        for (JavaRDD<T> rdd : rddList) {
+
+        for (JavaRDD<T> rdd : rddList)
             acc = acc.union(rdd);
-        }
         return acc;
     }
 
@@ -63,9 +63,9 @@ public class RDDUtils {
      */
     public static <K,V> JavaPairRDD<K,V> unionAllPair(List<JavaPairRDD<K,V>> rddList, SparkContext sc) {
         JavaPairRDD<K, V> acc = RDDUtils.getEmptyPairRDD(sc);
-        for (JavaPairRDD<K, V> rdd : rddList) {
+
+        for (JavaPairRDD<K, V> rdd : rddList)
             acc = acc.union(rdd);
-        }
         return acc;
     }
 

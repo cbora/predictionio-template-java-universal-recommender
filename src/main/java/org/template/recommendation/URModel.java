@@ -66,7 +66,7 @@ public class URModel {
         for (Tuple2<String,IndexedDataSet> t : this.coocurrenceMatrices) {
             final String actionName = t._1();
             final IndexedDataSet dataset = t._2();
-            correlatorRDDs.add(((IndexedDataSetSpark) dataset).toStringMapRDD(actionName) );
+            correlatorRDDs.add(((IndexedDataSetSpark) dataset).toStringMapRDD(actionName));
         }
 
         logger.info("Group all properties RDD");
@@ -74,10 +74,9 @@ public class URModel {
         final List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> allRDDs = new LinkedList<>();
         allRDDs.addAll(correlatorRDDs);
         allRDDs.addAll(propertiesRDDs);
+
         final JavaPairRDD<String, Map<String,JsonAST.JValue>> groupedRDD = groupAll(allRDDs);
-
         final JavaRDD<Map<String, Object>> esRDD = groupedRDD.mapPartitions(new EsRDDBuilder(dateNames));
-
         final List<String> esFields = esRDD.flatMap(Map::keySet).distinct().collect();
 
         logger.info("ES fields[" + esFields.size() + "]:" +  esFields);
@@ -88,7 +87,6 @@ public class URModel {
 
     private JavaPairRDD<String, Map<String,JsonAST.JValue>> groupAll(
             List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> fields) {
-
         final JavaPairRDD<String, Map<String,JsonAST.JValue>> tmp = RDDUtils.unionAllPair(fields, sc);
         return RDDUtils.combineMapByKey(tmp);
     }
@@ -97,32 +95,27 @@ public class URModel {
         if (value instanceof JsonAST.JArray) {
             final List<Object> list = new LinkedList<>();
             final scala.collection.Iterator iter = ((JsonAST.JArray) value).values().iterator();
+
             while (iter.hasNext())
                 list.add(extractJvalue(dateNames, key, (JsonAST.JValue) iter.next()));
+
             return list;
-        }
-        else if (value instanceof JsonAST.JString) {
+        } else if (value instanceof JsonAST.JString) {
             final String s = ((JsonAST.JString) value).s();
-            if (dateNames.contains(key)) {
+
+            if (dateNames.contains(key))
                 return new DateTime(s).toDate();
-            }
-            else if (RankingFieldName.toList().contains(key)) {
+            else if (RankingFieldName.toList().contains(key))
                 return Double.parseDouble(s);
-            }
-            else {
+            else
                 return s;
-            }
-        }
-        else if (value instanceof JsonAST.JDouble) {
+        } else if (value instanceof JsonAST.JDouble) {
             return ((JsonAST.JDouble) value).num();
-        }
-        else if (value instanceof JsonAST.JInt) {
+        } else if (value instanceof JsonAST.JInt) {
             return ((JsonAST.JInt) value).num();
-        }
-        else if (value instanceof JsonAST.JBool) {
+        } else if (value instanceof JsonAST.JBool) {
             return ((JsonAST.JBool) value).value();
-        }
-        else {
+        } else {
             return value;
         }
     }

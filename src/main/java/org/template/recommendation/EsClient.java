@@ -149,11 +149,11 @@ public final class EsClient {
             CreateIndexResponse create = client.admin().indices().create(cir).actionGet();
             if (!create.isAcknowledged()) {
                 logger.info("Index " + indexName + " wasn't created, but may have quietly failed.");
-            }
-            else {
+            } else {
                 // now refresh to get it 'committed'
                 // todo: should do this after the new index is created so no index downtime
-                if (refresh) {refreshIndex(indexName);}
+                if (refresh)
+                    refreshIndex(indexName);
             }
 
             return true;
@@ -198,26 +198,25 @@ public final class EsClient {
 
         String newIndexURI = "/" + newIndex + "/" + typeName;
 
-        Map<String, String> m = new HashMap<String, String>();
+        Map<String, String> m = new HashMap<>();
         m.put("es.mapping.id", "id");
         EsSpark.saveToEs(JavaRDD.toRDD(indexRDD), newIndexURI, scala.collection.JavaConverters.mapAsScalaMapConverter(m).asScala());
 
-        if((!aliasMetadata.isEmpty()) && (aliasMetadata.get(alias) != null)
-                && (aliasMetadata.get(alias).get(0) != null)){ // was alias so remove the old one
+        if ((!aliasMetadata.isEmpty()) && (aliasMetadata.get(alias) != null)
+                && (aliasMetadata.get(alias).get(0) != null)) { // was alias so remove the old one
             // append the DateTime to the alias to create an index name
             String oldIndex = aliasMetadata.get(alias).get(0).getIndexRouting();
             client.admin().indices().prepareAliases()
                     .removeAlias(oldIndex, alias).addAlias(newIndex, alias)
                     .execute().actionGet();
             deleteIndex(oldIndex, refresh); // now can safely delete the old one since it's not used
-        }
-        else {
+        } else {
             // to-do: could be more than one index with 'alias' so no alias so add one
             // to clean up any indexes that exist with the alias name
             String indices = client.admin().indices().prepareGetIndex().get().indices()[0];
-            if (indices.contains(alias)){
+            if (indices.contains(alias))
                 deleteIndex(alias, refresh);
-            }
+
             client.admin().indices()
                     .prepareAliases()
                     .addAlias(newIndex, alias)
@@ -226,10 +225,8 @@ public final class EsClient {
         // clean out any old index that were the product of a failed train
         String indices = client.admin().indices().prepareGetIndex().get().indices()[0];
 
-
-        if (indices.contains(alias) && indices != newIndex){
+        if (indices.contains(alias) && !indices.equals(newIndex))
             deleteIndex(indices, false);
-        }
     }
 
     /**
@@ -238,9 +235,8 @@ public final class EsClient {
      * @param indexName: the index to search
      * @return a [PredictedResults] collection
      */
-    public SearchHits search(String query, String indexName){
+    public SearchHits search(String query, String indexName) {
         SearchResponse sr = client.prepareSearch(indexName).setSource(query).get();
-
         return sr.isTimedOut() ? null : sr.getHits();
     }
 
@@ -262,21 +258,20 @@ public final class EsClient {
          if( allIndicesMap.size() == 1) { // must be a 1-1 mapping of alias <-> index
              String indexName = "";
              UnmodifiableIterator<String> itr = allIndicesMap.keysIt();
-             while (itr.hasNext()) {
+
+             while (itr.hasNext())
                  indexName = itr.next();
-             }
+
              // the one index that alias points to
              return indexName.equals("") ? null : indexName;
-         }else {
+         } else {
              // delete all the indices that are pointed to by the alias, they can't be used
              logger.warn("There is no 1-1 mapping of index to alias so deleting the old indexes that are reference by\"" +
                     "alias. This may have been caused by a crashed or stopped \"pio train\" operation so try running it again");
-             if ( !allIndicesMap.isEmpty() ){
+             if (!allIndicesMap.isEmpty()) {
                  boolean refresh = true;
-                 for (ObjectCursor<String> indexName : allIndicesMap.keys()){
-
+                 for (ObjectCursor<String> indexName : allIndicesMap.keys())
                      deleteIndex(indexName.value, refresh);
-                 }
              }
              return null; // if more than one abort, need to clean up bad aliases
          }
@@ -285,20 +280,18 @@ public final class EsClient {
 
     public JavaPairRDD<String, Map<String, JsonAST.JValue>> getRDD(String alias, String typeName, SparkContext sc) {
         String indexName = getIndexName(alias);
-        if (indexName == null || indexName.equals("")){
+        if (indexName == null || indexName.equals("")) {
             return null;
-        }
-        else {
+        } else {
             String resource = alias + "/" + typeName;
             JavaRDD<Tuple2<String, String>> tmp = EsSpark.esJsonRDD(sc, resource).toJavaRDD();
-            JavaPairRDD<String,String> esrdd = JavaPairRDD.<String,String>fromJavaRDD(tmp);
+            JavaPairRDD<String,String> esrdd = JavaPairRDD.fromJavaRDD(tmp);
 
-            JavaPairRDD<String, Map<String, JsonAST.JValue>> rtn = esrdd.<String,Map<String,JsonAST.JValue>>mapToPair(t ->
+            return esrdd.mapToPair(t ->
                     new Tuple2<String, Map<String, JsonAST.JValue>> (t._1(),
                             JavaConverters.mapAsJavaMapConverter(
                                     DataMap.apply(t._2())
                                             .fields()).asJava()));
-            return rtn;
         }
     }
 }
