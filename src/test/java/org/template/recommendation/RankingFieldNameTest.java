@@ -17,14 +17,14 @@ public class RankingFieldNameTest {
         list.add("trendRank");
         list.add("hotRank");
 
-        assertEquals(list, new RankingFieldName().toList());
+        assertEquals(list, RankingFieldName.toList());
     }
 
     @Test
     public void toStringTest() throws Exception {
         String s = "userRank, uniqueRank, popRank, trendRank, hotRank";
 
-        assertEquals(s, new RankingFieldName().toString());
+        assertEquals(s, RankingFieldName.asString());
     }
 
 }
