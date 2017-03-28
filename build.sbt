@@ -35,3 +35,5 @@ libraryDependencies ++= Seq(
 )
 
 testOptions += Tests.Argument(TestFrameworks.JUnit, "-q", "-v")
+
+parallelExecution in test := false
