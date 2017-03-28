@@ -27,7 +27,6 @@ public class RDDUtils {
      */
     public static <T> JavaRDD<T> getEmptyRDD(SparkContext sc) {
         final JavaSparkContext jsc = new JavaSparkContext(sc);
-        final JavaRDD<T> empty = jsc.emptyRDD();
         return jsc.emptyRDD();
     }
     /**
@@ -51,10 +50,10 @@ public class RDDUtils {
      * @return union of everything in rddList (return empty rdd if list if empty)
      */
     public static <T> JavaRDD<T> unionAll(List<JavaRDD<T>> rddList, SparkContext sc) {
-        final JavaRDD<T> acc = RDDUtils.getEmptyRDD(sc);
-        for (JavaRDD<T> rdd : rddList) {
-            acc.union(rdd);
-        }
+        JavaRDD<T> acc = RDDUtils.getEmptyRDD(sc);
+
+        for (JavaRDD<T> rdd : rddList)
+            acc = acc.union(rdd);
         return acc;
     }
 
@@ -67,10 +66,10 @@ public class RDDUtils {
      * @return union of everything in rddList (return empty rdd if list if empty)
      */
     public static <K,V> JavaPairRDD<K,V> unionAllPair(List<JavaPairRDD<K,V>> rddList, SparkContext sc) {
-        final JavaPairRDD<K, V> acc = RDDUtils.getEmptyPairRDD(sc);
-        for (JavaPairRDD<K, V> rdd : rddList) {
-            acc.union(rdd);
-        }
+        JavaPairRDD<K, V> acc = RDDUtils.getEmptyPairRDD(sc);
+
+        for (JavaPairRDD<K, V> rdd : rddList)
+            acc = acc.union(rdd);
         return acc;
     }
 

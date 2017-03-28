@@ -10,8 +10,7 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.joda.time.DateTime;
 import org.json4s.JsonAST;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 import scala.Tuple2;
 import scala.collection.JavaConversions;
 import scala.collection.Seq;
@@ -23,10 +22,10 @@ import java.util.*;
 import static org.junit.Assert.*;
 
 public class RDDUtilsTest {
-    private SparkContext sc;
+    private static SparkContext sc;
 
-    @Before
-    public void setUp() {
+    @BeforeClass
+    public static void setUp() {
         // create spark context
         SparkConf conf = new SparkConf().setAppName("myApp").setMaster("local");
         sc = new SparkContext(conf);
@@ -139,9 +138,9 @@ public class RDDUtilsTest {
 
     @Test
     public void combineCollectionByKey() throws Exception {
-        Collection<String> coll1 = Arrays.asList("a", "b", "c");
-        Collection<String> coll2 = Arrays.asList("c", "d", "e");
-        Collection<String> coll3 = Arrays.asList("x", "y");
+        Collection<String> coll1 = new LinkedList<>(Arrays.asList("a", "b", "c"));
+        Collection<String> coll2 = new LinkedList<>(Arrays.asList("c", "d", "e"));
+        Collection<String> coll3 = new LinkedList<>(Arrays.asList("x", "y"));
 
         List<Tuple2<String, Collection<String>>> list = Arrays.asList(
                 new Tuple2<>("k1", coll1),
@@ -165,5 +164,10 @@ public class RDDUtilsTest {
         assertTrue(combMap.get("k1").contains("e"));
         assertTrue(combMap.get("k2").contains("x"));
         assertTrue(combMap.get("k2").contains("y"));
+    }
+
+    @AfterClass
+    public static void tearDown() {
+        sc.stop();
     }
 }

@@ -17,14 +17,14 @@ public class RankingTypeTest {
         list.add("userDefined");
         list.add("random");
 
-        assertEquals(list, new RankingType().toList());
+        assertEquals(list, RankingType.toList());
     }
 
     @Test
     public void toStringTest() throws Exception {
         String s = "popular, trending, hot, userDefined, random";
 
-        assertEquals(s, new RankingType().toString());
+        assertEquals(s, RankingType.asString());
     }
 
 }
