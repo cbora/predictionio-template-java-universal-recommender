@@ -1,12 +1,10 @@
 package org.template.recommendation;
 
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 import java.io.Serializable;
 import java.util.List;
-
 
 @AllArgsConstructor
 public class Field implements Serializable {
