@@ -22,6 +22,7 @@ public class URModel {
 
     private transient static final Logger logger = LoggerFactory.getLogger(URModel.class);
 
+    private final EsClient esClient;
     private final List<Tuple2<String, IndexedDataset>> coocurrenceMatrices;
     private final List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> propertiesRDDs;
     private final Map<String,String> typeMappings;
@@ -68,7 +69,7 @@ public class URModel {
 
         logger.info("ES fields[" + esFields.size() + "]:" +  esFields);
 
-        EsClient.getInstance().hotSwap(esIndex, esType, esRDD, esFields, typeMappings);
+        esClient.hotSwap(esIndex, esType, esRDD, esFields, typeMappings);
         return true;
     }
 
