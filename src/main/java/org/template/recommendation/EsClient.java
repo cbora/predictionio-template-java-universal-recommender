@@ -55,7 +55,7 @@ import java.util.Map;
  *  4) to use like a DB you must specify that the index of fields are `not_analyzed` so they won't be lowercased,
  *    stemmed, tokenized, etc. Then the values are literal and must match exactly what is in the query (no analyzer)
  */
-public final class EsClient {
+public class EsClient {
     private transient static Logger logger = LoggerFactory.getLogger(EsClient.class);
     private final TransportClient client;
 
