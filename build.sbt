@@ -24,6 +24,7 @@ libraryDependencies ++= Seq(
     exclude("org.apache.hadoop", "hadoop-client"),
   // Elasticsearch integration
   "org.elasticsearch" %% "elasticsearch-spark" % "2.1.2",
+  "com.github.tlrx" % "elasticsearch-test" % "1.2.1",
   // junit testing
   "com.novocode" % "junit-interface" % "0.11" % "test",
   // lombok
