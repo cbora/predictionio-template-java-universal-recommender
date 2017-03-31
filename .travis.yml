@@ -21,4 +21,3 @@ install:
 
 script:
   - sbt compile
-  - sbt test
