@@ -11,6 +11,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.*;
+
 import static java.util.stream.Collectors.toList;
 import org.apache.mahout.math.cf.DownsamplableCrossOccurrenceDataset;
 import org.apache.mahout.math.cf.ParOpts;
@@ -218,8 +219,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         ArrayList<JavaPairRDD<String, Map<String, JsonAST.JValue>>> pList = new ArrayList<>();
         pList.add(propertiesRDD);
         new URModel(
-//                cooccurrenceCorrelators,
-                null,
+                cooccurrenceCorrelators,
                 pList,
                 getRankingMapping(),
                 false,
@@ -257,14 +257,11 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
                 HashMap<String, JsonAST.JValue> newMap = new HashMap<>(fieldPropMap);
                 newMap.putAll(rankPropMap);
                 return new Tuple2<>(item, newMap);
-
-            }else if (oFieldsPropMap.isPresent()){
+            } else if (oFieldsPropMap.isPresent()){
                 return new Tuple2<>(item,  oFieldsPropMap.get());
-
-            }else if (oRankPropMap.isPresent()){
+            } else if (oRankPropMap.isPresent()){
                 return new Tuple2<>(item,  oRankPropMap.get());
-
-            }else{
+            } else{
                 return new Tuple2<>(item, new HashMap<String, JsonAST.JValue>());
             }
         }
@@ -302,14 +299,13 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
                 HashMap<String, JsonAST.JValue> newMap = new HashMap<>(propMap);
                 newMap.put(fieldName, new JsonAST.JDouble(oRank.get()) );
                 return new Tuple2<>(itemID, newMap);
-            }else if (oPropMap.isPresent()){
+            } else if (oPropMap.isPresent()){
                 return new Tuple2<>(itemID, oPropMap.get());
-
-            }else if (oRank.isPresent()){
+            } else if (oRank.isPresent()){
                 HashMap<String, JsonAST.JValue> newMap = new HashMap<>();
                 newMap.put(fieldName, new JsonAST.JDouble(oRank.get()));
                 return new Tuple2<>(itemID, newMap);
-            }else{
+            } else{
                 return new Tuple2<>(itemID, new HashMap<String, JsonAST.JValue>());
             }
         }

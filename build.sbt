@@ -1,4 +1,4 @@
-import AssemblyKeys._
+
 
 assemblySettings
 
@@ -24,6 +24,9 @@ libraryDependencies ++= Seq(
     exclude("org.apache.hadoop", "hadoop-client"),
   // Elasticsearch integration
   "org.elasticsearch" %% "elasticsearch-spark" % "2.1.2",
+  // junit testing
+  "com.novocode" % "junit-interface" % "0.11" % "test",
+  // lombok
   "org.projectlombok" % "lombok" % "1.16.14",
   "org.scalatest" % "scalatest_2.10" % "2.2.1" % "test",
   "com.google.code.gson"    % "gson"             % "2.5",
@@ -31,3 +34,6 @@ libraryDependencies ++= Seq(
   "org.jblas" % "jblas" % "1.2.4"
 )
 
+testOptions += Tests.Argument(TestFrameworks.JUnit, "-q", "-v")
+
+parallelExecution in test := false

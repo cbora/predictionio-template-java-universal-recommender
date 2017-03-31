@@ -13,7 +13,7 @@ public class SimilarityAnalysisJava {
     public static List<IndexedDataset> crossOccurrenceDownsampled(
             List<DownsamplableCrossOccurrenceDataset> datasets,
             int seed
-    ){
+    ) {
         scala.collection.immutable.List l =  SimilarityAnalysis.crossOccurrenceDownsampled(
                 scala.collection.JavaConverters.collectionAsScalaIterableConverter(datasets).asScala().toList(),
                 seed);
