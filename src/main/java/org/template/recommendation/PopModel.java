@@ -1,5 +1,6 @@
 package org.template.recommendation;
 
+import lombok.AllArgsConstructor;
 import org.apache.predictionio.data.storage.Event;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -12,14 +13,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import scala.Option;
 import scala.Tuple2;
-import scala.reflect.ClassTag;
-import scala.reflect.ClassTag$;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@AllArgsConstructor
 public class PopModel {
     private transient static final Logger logger = LoggerFactory.getLogger(PopModel.class);
     public static final Map<String, String> nameByType;
@@ -38,16 +38,6 @@ public class PopModel {
     private final SparkContext sc;
 
     /**
-     * Constructor
-     * @param fieldsRDD rdd of (ItemID, ItemProp) pairs (ItemProp is a String -> JSonAST.JValue map)
-     * @param sc spark context
-     */
-    public PopModel(JavaPairRDD<String, Map<String, JsonAST.JValue>> fieldsRDD, SparkContext sc) {
-        this.fieldsRDD = fieldsRDD;
-        this.sc = sc;
-    }
-
-    /**
      * Create random rank for all items
      * @param modelName name of model
      * @param eventNames names of events we want to look at
@@ -62,8 +52,7 @@ public class PopModel {
         DateTime end;
         if (offsetDate.isEmpty()) {
             end = DateTime.now();
-        }
-        else {
+        } else {
             try {
                 end = ISODateTimeFormat.dateTimeParser().parseDateTime(offsetDate);
             } catch (IllegalArgumentException e) {
@@ -151,17 +140,9 @@ public class PopModel {
             final JavaPairRDD<String, Double> newerPopRDD = calcPopular(eventStore, eventNames, newerInterval);
             return newerPopRDD.join(olderPopRDD)
                     .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
-        }
-        else {
+        } else {
             return RDDUtils.getEmptyPairRDD(sc);
         }
-
-        /* alt way
-        final JavaRDD<Event> events = eventsRDD(appName, eventNames, interval);
-        return events.mapToPair(e -> new Tuple2<String, Integer>(e.targetEntityId().get(), 1))
-                .reduceByKey((a,b) -> a + b)
-                .mapToPair(t -> new Tuple2<String, Double>(t._1(), (double) t._2()));
-         */
     }
 
     /**
@@ -193,12 +174,10 @@ public class PopModel {
                         .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
                 return newerVelocity.join(olderVelocity)
                         .mapToPair(t -> new Tuple2<String, Double>(t._1, t._2._1 - t._2._2));
-            }
-            else {
+            } else {
                 return RDDUtils.getEmptyPairRDD(sc);
             }
-        }
-        else {
+        } else {
             return RDDUtils.getEmptyPairRDD(sc);
         }
     }

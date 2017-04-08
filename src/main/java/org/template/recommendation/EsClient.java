@@ -55,26 +55,12 @@ import java.util.Map;
  *  4) to use like a DB you must specify that the index of fields are `not_analyzed` so they won't be lowercased,
  *    stemmed, tokenized, etc. Then the values are literal and must match exactly what is in the query (no analyzer)
  */
-public final class EsClient {
+public class EsClient {
     private transient static Logger logger = LoggerFactory.getLogger(EsClient.class);
-    private static TransportClient client = null;
+    private final TransportClient client;
 
-    private static final EsClient INSTANCE = new EsClient();
-
-    private EsClient() {
-    }
-
-    public static EsClient getInstance() {
-        if (client == null) {
-            if (Storage.getConfig("ELASTICSEARCH").nonEmpty())
-                client = new StorageClient(Storage.getConfig("ELASTICSEARCH").get()).client();
-            else
-                throw new IllegalStateException(
-                        "No Elasticsearch client configuration detected, check your pio-env.sh for " +
-                                "proper configuration settings");
-        }
-
-        return INSTANCE;
+    public EsClient(ITCManager tcManager) {
+        this.client = tcManager.get();
     }
 
     /** Delete all data from an instance but do not commit it. Until the "refresh" is done on the index

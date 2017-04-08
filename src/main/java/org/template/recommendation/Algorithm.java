@@ -219,6 +219,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         ArrayList<JavaPairRDD<String, Map<String, JsonAST.JValue>>> pList = new ArrayList<>();
         pList.add(propertiesRDD);
         new URModel(
+                new EsClient(new PioTCManager()),
                 cooccurrenceCorrelators,
                 pList,
                 getRankingMapping(),
@@ -313,7 +314,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
 
     /** Calculate all fields and items needed for ranking.
      *
-     *  @param fieldsRDD all items with their fields
+     *  @param fieldsRdd all items with their fields
      *  @param sc the current Spark context
      *  @return
      */

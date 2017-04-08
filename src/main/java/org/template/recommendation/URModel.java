@@ -1,5 +1,6 @@
 package org.template.recommendation;
 
+import lombok.AllArgsConstructor;
 import org.apache.mahout.math.indexeddataset.IndexedDataset;
 import org.apache.mahout.sparkbindings.indexeddataset.IndexedDatasetSpark;
 import org.apache.spark.SparkContext;
@@ -16,29 +17,17 @@ import scala.Tuple2;
 import java.util.*;
 
 /** Universal Recommender models to save in ES */
+@AllArgsConstructor
 public class URModel {
 
     private transient static final Logger logger = LoggerFactory.getLogger(URModel.class);
 
+    private final EsClient esClient;
     private final List<Tuple2<String, IndexedDataset>> coocurrenceMatrices;
     private final List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> propertiesRDDs;
     private final Map<String,String> typeMappings;
     private final boolean nullModel;
     private final SparkContext sc;
-
-    public URModel(
-            List<Tuple2<String, IndexedDataset>> coocurrenceMatrices,
-            List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> propertiesRDDs,
-            Map<String,String> typeMappings,
-            boolean nullModel,
-            SparkContext sc) {
-
-        this.coocurrenceMatrices = coocurrenceMatrices;
-        this.propertiesRDDs = propertiesRDDs;
-        this.typeMappings = typeMappings;
-        this.nullModel = nullModel;
-        this.sc = sc;
-    }
 
     /** Save all fields to be indexed by Elasticsearch and queried for recs
      *  This will is something like a table with row IDs = item IDs and separate fields for all
@@ -80,7 +69,7 @@ public class URModel {
 
         logger.info("ES fields[" + esFields.size() + "]:" +  esFields);
 
-        EsClient.getInstance().hotSwap(esIndex, esType, esRDD, esFields, typeMappings);
+        esClient.hotSwap(esIndex, esType, esRDD, esFields, typeMappings);
         return true;
     }
 
