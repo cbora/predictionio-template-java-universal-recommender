@@ -19,16 +19,19 @@
 
 package org.template;
 
-import org.template.indexeddataset.BiDictionaryJava;
-import org.template.indexeddataset.IndexedDatasetJava;
-import scala.collection.JavaConverters;
-import org.json4s.JsonAST;
-import scala.Tuple2;
-import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.predictionio.controller.java.PJavaPreparator;
 import org.apache.spark.SparkContext;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.json4s.JsonAST;
+import org.template.indexeddataset.BiDictionaryJava;
+import org.template.indexeddataset.IndexedDatasetJava;
+import scala.Tuple2;
+import scala.collection.JavaConverters;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 public class Preparator extends PJavaPreparator<TrainingData, PreparedData> {
 

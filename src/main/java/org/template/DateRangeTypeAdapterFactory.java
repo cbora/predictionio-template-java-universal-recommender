@@ -25,8 +25,8 @@ public class DateRangeTypeAdapterFactory implements TypeAdapterFactory {
     public DateRange read(final JsonReader in) throws IOException {
       Map<String, String> fields = new HashMap<>();
       fields.put("name", null);
-      fields.put("beforeDate", null);
-      fields.put("afterDate", null);
+      fields.put("before", null);
+      fields.put("after", null);
 
       in.beginObject();
       while(in.hasNext()) {
@@ -34,8 +34,8 @@ public class DateRangeTypeAdapterFactory implements TypeAdapterFactory {
       }
       in.endObject();
 
-      return new DateRange(fields.get("name"), fields.get("beforeDate"),
-              fields.get("afterDate"));
+      return new DateRange(fields.get("name"), fields.get("before"),
+              fields.get("after"));
     }
 
     @Override
@@ -43,12 +43,12 @@ public class DateRangeTypeAdapterFactory implements TypeAdapterFactory {
       out.beginObject();
       out.name("name").value(dateRange.getName());
 
-      if (dateRange.getBeforeDate() != null) {
-        out.name("beforeDate").value(dateRange.getBeforeDate().toString());
+      if (dateRange.getBefore() != null) {
+        out.name("before").value(dateRange.getBefore().toString());
       }
 
-      if (dateRange.getAfterDate() != null) {
-        out.name("afterDate").value(dateRange.getAfterDate().toString());
+      if (dateRange.getAfter() != null) {
+        out.name("after").value(dateRange.getAfter().toString());
       }
       out.endObject();
     }

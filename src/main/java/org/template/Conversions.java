@@ -3,18 +3,19 @@ package org.template;
 
 import javafx.util.Pair;
 import org.apache.mahout.math.Vector;
+import org.apache.mahout.sparkbindings.SparkDistributedContext;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.broadcast.Broadcast;
 import org.json4s.JsonAST;
 import org.slf4j.Logger;
-import org.template.indexeddataset.IndexedDatasetJava;
-import org.template.indexeddataset.BiDictionaryJava;
-import scala.Tuple2;
-import java.util.*;
 import org.slf4j.LoggerFactory;
-import org.apache.mahout.sparkbindings.SparkDistributedContext;
+import org.template.indexeddataset.BiDictionaryJava;
+import org.template.indexeddataset.IndexedDatasetJava;
+import scala.Tuple2;
 import scala.reflect.ClassTag;
+
+import java.util.*;
 
 
 /** Utility conversions for IndexedDatasetSpark */

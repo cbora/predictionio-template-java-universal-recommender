@@ -1,30 +1,30 @@
 package org.template;
 
+import org.apache.predictionio.data.storage.DataMap;
+import org.apache.predictionio.data.storage.Storage;
 import org.apache.predictionio.data.storage.elasticsearch.StorageClient;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
+import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
+import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.create.CreateIndexResponse;
+import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
 import org.elasticsearch.action.admin.indices.delete.DeleteIndexResponse;
+import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
+import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.search.SearchResponse;
+import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.cluster.metadata.AliasMetaData;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.collect.UnmodifiableIterator;
 import org.elasticsearch.common.hppc.cursors.ObjectCursor;
+import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.spark.rdd.EsSpark;
+import org.joda.time.DateTime;
 import org.json4s.JsonAST;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.apache.predictionio.data.storage.*;
-import org.apache.spark.SparkContext;
-import org.elasticsearch.action.admin.indices.alias.get.GetAliasesRequest;
-import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsRequest;
-import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
-import org.elasticsearch.client.transport.TransportClient;
-import org.elasticsearch.spark.rdd.EsSpark;
-
-import org.joda.time.DateTime;
-import org.elasticsearch.search.SearchHits;
 import scala.Tuple2;
 import scala.collection.JavaConverters;
 

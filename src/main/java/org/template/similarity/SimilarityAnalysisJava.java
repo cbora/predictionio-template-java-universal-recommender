@@ -1,11 +1,11 @@
 package org.template.similarity;
 
-import java.util.List;
-
 import org.apache.mahout.math.cf.DownsamplableCrossOccurrenceDataset;
 import org.apache.mahout.math.cf.ParOpts;
-import org.apache.mahout.math.indexeddataset.IndexedDataset;
 import org.apache.mahout.math.cf.SimilarityAnalysis;
+import org.apache.mahout.math.indexeddataset.IndexedDataset;
+
+import java.util.List;
 
 
 public class SimilarityAnalysisJava {
