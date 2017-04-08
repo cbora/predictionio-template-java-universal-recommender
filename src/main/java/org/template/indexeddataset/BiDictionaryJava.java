@@ -1,12 +1,12 @@
 package org.template.indexeddataset;
 
 import org.apache.mahout.math.indexeddataset.BiDictionary;
-import java.util.List;
-import java.util.HashMap;
-
+import scala.collection.JavaConverters;
 import scala.collection.JavaConverters$;
 import scala.collection.immutable.Map;
-import scala.collection.JavaConverters;
+
+import java.util.HashMap;
+import java.util.List;
 
 /**
  * Created by Alvin Zhu on 2/27/17.

@@ -14,12 +14,12 @@ import java.util.List;
 
 public class DateRange implements Serializable, CustomQuerySerializer {
   @Getter private final String name;
-  @Getter private final DateTime beforeDate; // name of item property for the date comparison
-  @Getter private final DateTime afterDate; // both empty should be ignored
+  @Getter private final DateTime before; // name of item property for the date comparison
+  @Getter private final DateTime after; // both empty should be ignored
 
   /**
    *  One of the bound can be omitted but not both.
-   *  Values for the beforeDate and afterDate are strings in ISO 8601 format.
+   *  Values for the before and after are strings in ISO 8601 format.
    */
   public DateRange(String name, String before, String after) {
 
@@ -30,15 +30,15 @@ public class DateRange implements Serializable, CustomQuerySerializer {
     this.name = name;
 
     if (before != null && !before.isEmpty()) {
-      this.beforeDate = new DateTime(before);
+      this.before = new DateTime(before);
     } else {
-      this.beforeDate = null;
+      this.before = null;
     }
 
     if (after != null && !after.isEmpty()) {
-      this.afterDate = new DateTime(after);
+      this.after = new DateTime(after);
     } else {
-      this.afterDate = null;
+      this.after = null;
     }
   }
 
@@ -46,8 +46,8 @@ public class DateRange implements Serializable, CustomQuerySerializer {
   public String toString() {
     return "DateRange{" +
             ", name= " + this.name +
-            ", before= " + this.beforeDate +
-            ", after= " + this.afterDate +
+            ", before= " + this.before +
+            ", after= " + this.after +
             '}';
   }
 
@@ -61,5 +61,17 @@ public class DateRange implements Serializable, CustomQuerySerializer {
     List<TypeAdapterFactory> typeAdapterFactoryList = new LinkedList<>();
     typeAdapterFactoryList.add(new DateRangeTypeAdapterFactory());
     return JavaConversions.asScalaBuffer(typeAdapterFactoryList).toSeq();
+  }
+
+  @Override
+  public boolean equals(Object obj) {
+    if (obj instanceof DateRange) {
+      DateRange dateRange = (DateRange) obj;
+      return this.name.equals(dateRange.name)
+              && this.before.equals(dateRange.before)
+              && this.after.equals(dateRange.after);
+    } else {
+      return false;
+    }
   }
 }

@@ -28,8 +28,8 @@ public class DateRangeTest {
    *
    "dateRange": {
    "name": "availabledate",
-   "beforeDate": "2015-08-15T11:28:45.114-07:00",
-   "afterDate": "2015-08-20T11:28:45.114-07:00"
+   "before": "2015-08-15T11:28:45.114-07:00",
+   "after": "2015-08-20T11:28:45.114-07:00"
    }
    */
   @Test
@@ -39,16 +39,16 @@ public class DateRangeTest {
     String after = "2015-08-20T11:28:45.114-07:00";
     DateRange dateRange = new DateRange(name, before, after);
     assertEquals(name, dateRange.getName());
-    assertEquals(new DateTime(before), dateRange.getBeforeDate());
-    assertEquals(new DateTime(after), dateRange.getAfterDate());
+    assertEquals(new DateTime(before), dateRange.getBefore());
+    assertEquals(new DateTime(after), dateRange.getAfter());
   }
 
   /**
    *
    "dateRange": {
      "name": "availabledate",
-     "beforeDate": "2015-08-15T11:28:45.114-07:00",
-     "afterDate": "2015-08-20T11:28:45.114-07:00"
+     "before": "2015-08-15T11:28:45.114-07:00",
+     "after": "2015-08-20T11:28:45.114-07:00"
    }
    */
   @Test
@@ -57,21 +57,21 @@ public class DateRangeTest {
     String before = "2015-08-15T11:28:45.114-07:00";
     String after = "2015-08-20T11:28:45.114-07:00";
     String json = "{\"name\": \"" + name + "\"," +
-                  "\"beforeDate\": \"" + before + "\"," +
-                  "\"afterDate\": \"" + after + "\"}";
+                  "\"before\": \"" + before + "\"," +
+                  "\"after\": \"" + after + "\"}";
 
     DateRange jsonDateRange = gson.fromJson(json, DateRange.class);
     assertEquals(name, jsonDateRange.getName());
-    assertEquals(new DateTime(before), jsonDateRange.getBeforeDate());
-    assertEquals(new DateTime(after), jsonDateRange.getAfterDate());
+    assertEquals(new DateTime(before), jsonDateRange.getBefore());
+    assertEquals(new DateTime(after), jsonDateRange.getAfter());
   }
 
   /**
    *
    "dateRange": {
    "name": "availabledate",
-   "beforeDate": "2015-08-15T11:28:45.114-07:00",
-   "afterDate": "2015-08-20T11:28:45.114-07:00"
+   "before": "2015-08-15T11:28:45.114-07:00",
+   "after": "2015-08-20T11:28:45.114-07:00"
    }
    */
   @Test
@@ -80,8 +80,8 @@ public class DateRangeTest {
     String before = "2015-08-15T11:28:45.114-07:00";
     String after = "2015-08-20T11:28:45.114-07:00";
     String json = "{\"name\": \"" + name + "\"," +
-            "\"beforeDate\": \"" + before + "\"," +
-            "\"afterDate\": \"" + after + "\"}";
+            "\"before\": \"" + before + "\"," +
+            "\"after\": \"" + after + "\"}";
 
     DateRange dateRange = gson.fromJson(json, DateRange.class);
     String result = "DateRange{" +
@@ -106,8 +106,8 @@ public class DateRangeTest {
     String before = "notavaliddate";
     String after = "2015-08-20T11:28:45.114-07:00";
     String json = "{\"name\": \"" + name + "\"," +
-            "\"beforeDate\": \"" + before + "\"," +
-            "\"afterDate\": \"" + after + "\"}";
+            "\"before\": \"" + before + "\"," +
+            "\"after\": \"" + after + "\"}";
     DateRange dateRange = gson.fromJson(json, DateRange.class);
   }
 
@@ -125,8 +125,8 @@ public class DateRangeTest {
     String before = "2015-08-20T11:28:45.114-07:00";
     String after = "notavaliddate";
     String json = "{\"name\": \"" + name + "\"," +
-            "\"beforeDate\": \"" + before + "\"," +
-            "\"afterDate\": \"" + after + "\"}";
+            "\"before\": \"" + before + "\"," +
+            "\"after\": \"" + after + "\"}";
     DateRange dateRange = gson.fromJson(json, DateRange.class);
   }
 
@@ -144,8 +144,8 @@ public class DateRangeTest {
     String before = "";
     String after = "";
     String json = "{\"name\": \"" + name + "\"," +
-            "\"beforeDate\": \"" + before + "\"," +
-            "\"afterDate\": \"" + after + "\"}";
+            "\"before\": \"" + before + "\"," +
+            "\"after\": \"" + after + "\"}";
     DateRange dateRange = gson.fromJson(json, DateRange.class);
   }
 
@@ -158,7 +158,7 @@ public class DateRangeTest {
     DateRange dateRange = new DateRange(name, before, after);
 
     String expectedJson = "{\"name\":\"" + name + "\"," +
-            "\"beforeDate\":\"" + new DateTime(before) + "\"}";
+            "\"before\":\"" + new DateTime(before) + "\"}";
     assertEquals(expectedJson, gson.toJson(dateRange));
   }
 
@@ -171,7 +171,8 @@ public class DateRangeTest {
     DateRange dateRange = new DateRange(name, before, after);
 
     String expectedJson = "{\"name\":\"" + name + "\"," +
-            "\"afterDate\":\"" + new DateTime(after) + "\"}";
+            "\"after\":\"" + new DateTime(after) + "\"}";
     assertEquals(expectedJson, gson.toJson(dateRange));
+    System.out.println(expectedJson);
   }
 }

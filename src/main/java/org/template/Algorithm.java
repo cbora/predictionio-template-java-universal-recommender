@@ -1,26 +1,26 @@
 package org.template;
 
+import com.google.common.base.Optional;
+import org.apache.mahout.math.cf.DownsamplableCrossOccurrenceDataset;
+import org.apache.mahout.math.cf.ParOpts;
 import org.apache.mahout.math.indexeddataset.IndexedDataset;
 import org.apache.predictionio.controller.java.P2LJavaAlgorithm;
 import org.apache.predictionio.data.storage.NullModel;
 import org.apache.predictionio.data.store.java.OptionHelper;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.function.PairFunction;
 import org.json4s.JsonAST;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
-
-import static java.util.stream.Collectors.toList;
-import org.apache.mahout.math.cf.DownsamplableCrossOccurrenceDataset;
-import org.apache.mahout.math.cf.ParOpts;
 import org.template.indexeddataset.IndexedDatasetJava;
 import org.template.similarity.SimilarityAnalysisJava;
 import scala.Tuple2;
 import scala.concurrent.duration.Duration;
-import com.google.common.base.Optional;
-import org.apache.spark.api.java.function.PairFunction;
+
+import java.util.*;
+
+import static java.util.stream.Collectors.toList;
 
 public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, PredictedResult> {
 

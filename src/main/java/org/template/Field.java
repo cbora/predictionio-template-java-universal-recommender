@@ -21,4 +21,16 @@ public class Field implements Serializable {
                 ", bias= " + this.bias +
                 '}';
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Field) {
+            Field field = (Field) obj;
+            return this.name.equals(field.name)
+                    && this.values.equals(field.values)
+                    && this.bias.equals(field.bias);
+        } else {
+            return false;
+        }
+    }
 }
