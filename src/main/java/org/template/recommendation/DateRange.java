@@ -63,7 +63,7 @@ public class DateRange implements Serializable, CustomQuerySerializer {
   @Override
   public Seq<TypeAdapterFactory> gsonTypeAdapterFactories() {
     List<TypeAdapterFactory> typeAdapterFactoryList = new LinkedList<>();
-
+    typeAdapterFactoryList.add(new DateRangeTypeAdapterFactory());
     return JavaConversions.asScalaBuffer(typeAdapterFactoryList).toSeq();
   }
 }
