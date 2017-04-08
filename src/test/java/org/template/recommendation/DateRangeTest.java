@@ -86,8 +86,8 @@ public class DateRangeTest {
     DateRange dateRange = gson.fromJson(json, DateRange.class);
     String result = "DateRange{" +
             ", name= " + name +
-            ", before= " + before +
-            ", after= " + after +
+            ", before= " + new DateTime(before) +
+            ", after= " + new DateTime(after) +
             '}';
     assertEquals(result, dateRange.toString());
   }
