@@ -26,6 +26,7 @@ libraryDependencies ++= Seq(
   "org.elasticsearch" %% "elasticsearch-spark" % "2.1.2",
   // junit testing
   "com.novocode" % "junit-interface" % "0.11" % "test",
+  "com.fatboyindustrial.gson-jodatime-serialisers" % "gson-jodatime-serialisers" % "1.6.0",
   // lombok
   "org.projectlombok" % "lombok" % "1.16.14",
   "org.scalatest" % "scalatest_2.10" % "2.2.1" % "test",

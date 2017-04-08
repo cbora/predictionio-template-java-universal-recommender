@@ -1,19 +1,25 @@
 package org.template.recommendation;
 
+import com.google.gson.TypeAdapterFactory;
 import lombok.Getter;
+import org.apache.predictionio.controller.CustomQuerySerializer;
 import org.joda.time.DateTime;
+import org.json4s.Formats;
+import scala.collection.JavaConversions;
+import scala.collection.Seq;
 
 import java.io.Serializable;
 import java.util.IllegalFormatException;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.regex.Pattern;
 
-public class DateRange implements Serializable {
-  @Getter private final String name;
-  @Getter private final String before; // name of item property for the date comparison
-  @Getter private final String after; // both empty should be ignored
+import static scala.collection.JavaConversions.*;
 
-  static final Pattern r8601 = Pattern.compile("(\\d{4})-(\\d{2})-(\\d{2})T((\\d{2}):"+
-          "(\\d{2}):(\\d{2})\\.(\\d{3}))((\\+|-)(\\d{2}):(\\d{2}))");
+public class DateRange implements Serializable, CustomQuerySerializer {
+  @Getter private final String name;
+  @Getter private final DateTime beforeDate; // name of item property for the date comparison
+  @Getter private final DateTime afterDate; // both empty should be ignored
 
   /**
    *  One of the bound can be omitted but not both.
@@ -25,33 +31,39 @@ public class DateRange implements Serializable {
       throw new IllegalArgumentException("One of the bounds can be omitted but not both");
     }
 
-    if (before != null && !before.isEmpty() && !r8601.matcher(before).matches()) {
-        throw new IllegalArgumentException("beforedate does not conform to ISO 8601 format");
-    }
-
-    if (after != null && !after.isEmpty()&& !r8601.matcher(after).matches()) {
-        throw new IllegalArgumentException("afterdate does not conform to ISO 8601 format");
-    }
-
     this.name = name;
-    this.before = before;
-    this.after = after;
+
+    if (before != null && !before.isEmpty()) {
+      this.beforeDate = new DateTime(before);
+    } else {
+      this.beforeDate = null;
+    }
+
+    if (after != null && !after.isEmpty()) {
+      this.afterDate = new DateTime(after);
+    } else {
+      this.afterDate = null;
+    }
   }
 
   @Override
   public String toString() {
     return "DateRange{" +
             ", name= " + this.name +
-            ", before= " + this.before +
-            ", after= " + this.after +
+            ", before= " + this.beforeDate +
+            ", after= " + this.afterDate +
             '}';
   }
 
-  public DateTime getBeforeDateTime() {
-    return new DateTime(this.before);
+  @Override
+  public Formats querySerializer() {
+    return null;
   }
 
-  public DateTime getAfterDateTime() {
-    return new DateTime(this.after);
+  @Override
+  public Seq<TypeAdapterFactory> gsonTypeAdapterFactories() {
+    List<TypeAdapterFactory> typeAdapterFactoryList = new LinkedList<>();
+    typeAdapterFactoryList.add(new DateRangeTypeAdapterFactory());
+    return JavaConversions.asScalaBuffer(typeAdapterFactoryList).toSeq();
   }
 }
