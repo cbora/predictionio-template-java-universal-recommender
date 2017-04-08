@@ -40,7 +40,13 @@ public class DateRangeTypeAdapterFactory implements TypeAdapterFactory {
 
     @Override
     public void write(JsonWriter out, DateRange dateRange) throws IOException {
+      if (dateRange == null) {
+        out.value((String) null);
+        return;
+      }
+
       out.beginObject();
+
       out.name("name").value(dateRange.getName());
 
       if (dateRange.getBefore() != null) {
