@@ -3,7 +3,8 @@ package org.template;
 /**
  * Created by jihunkim on 2/12/17.
  */
-public class DefaultURAlgorithmParams {
+public class
+DefaultURAlgorithmParams {
     public static final int DefaultMaxEventsPerEventType = 500;
     public static final int DefaultNum = 20;
     public static final int DefaultMaxCorrelatorsPerEventType = 50;

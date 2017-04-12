@@ -151,7 +151,7 @@ public class AlgorithmParams implements Params {
                 "blacklistEvents: " + this.blacklistEvents +
                 "maxQueryEvents: " + this.maxQueryEvents +
                 "maxEventsPerEventType: " + this.maxEventsPerEventType +
-                "maxCorrelaatorsPerEeventType: " + this.maxCorrelatorsPerEventType +
+                "maxCorrelatorsPerEventType: " + this.maxCorrelatorsPerEventType +
                 "num: " + this.num +
                 "userBias: " + this.userBias +
                 "itemBias: " + this.itemBias +
