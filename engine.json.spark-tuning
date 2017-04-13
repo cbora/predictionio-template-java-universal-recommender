@@ -15,6 +15,10 @@
     "spark.kryo.registrator": "org.apache.mahout.sparkbindings.io.MahoutKryoRegistrator",
     "spark.kryo.referenceTracking": "false",
     "spark.kryoserializer.buffer": "300m",
+    "spark.executor.memory": "4g",
+    "spark.executor.cores": "2",
+    "spark.task.cpus": "2",
+    "spark.default.parallelism": "16",
     "es.index.auto.create": "true"
   },
   "algorithms": [
@@ -26,19 +30,9 @@
         "indexName": "urindex",
         "typeName": "items",
         "comment": "must have data for the first event or the model will not build, other events are optional",
-        "indicators": [
-          {
-            "name": "purchase"
-          },{
-            "name": "view",
-            "maxCorrelatorsPerItem": 50
-          }
-        ],
-        "availableDateName": "available",
-        "expireDateName": "expires",
-        "dateName": "date",
-        "num": 4
+        "eventNames": ["purchase", "view"]
       }
     }
   ]
 }
+
