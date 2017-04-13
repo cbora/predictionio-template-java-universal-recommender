@@ -7,6 +7,7 @@ import org.apache.mahout.math.indexeddataset.IndexedDataset;
 import org.apache.predictionio.controller.java.P2LJavaAlgorithm;
 import org.apache.predictionio.data.storage.Event;
 import org.apache.predictionio.data.storage.NullModel;
+import org.apache.predictionio.data.store.java.LJavaEventStore;
 import org.apache.predictionio.data.store.java.OptionHelper;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -18,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.template.indexeddataset.IndexedDatasetJava;
 import org.template.similarity.SimilarityAnalysisJava;
+import scala.Option;
 import scala.Tuple2;
 import scala.concurrent.duration.Duration;
 
@@ -49,6 +51,17 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
   private final String esIndex;
   private final String esType;
 
+  //used in getBiasedRecentUserActions
+  private List<String> queryEventNames = new ArrayList<>();
+
+  /**
+   * Creates cooccurrence, cross-cooccurrence and eventually content correlators with
+   * [[org.apache.mahout.math.cf.SimilarityAnalysis]] The analysis part of the recommender is
+   * done here but the algorithm can predict only when the coocurrence data is indexed in a
+   * search engine like Elasticsearch. This is done in URModel.save.
+   *
+   * @param ap taken from engine.json to describe limits and event types
+   */
   public Algorithm(AlgorithmParams ap) {
     this.ap = ap;
     this.appName = ap.getAppName();
@@ -423,6 +436,58 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
       return new PredictedResult(null);
     }
 
+  }
+
+  /**
+   * Get recent events of the user on items to create the recommendations query from
+   */
+  private Tuple2<List<BoostableCorrelators>, List<Event>> getBiasedRecentUserActions(Query query) {
+    List<Event> recentEvents = new ArrayList<>();
+    try {
+      recentEvents =
+          LJavaEventStore.findByEntity(
+              this.appName,
+              "user",
+              query.getUser(),
+              null,
+              Option.apply(queryEventNames),
+              null,
+              null,
+              null,
+              null,
+              null,
+              true,
+              Duration.create(200, "millis")
+          );
+    } catch (NoSuchElementException ex) {
+      logger.info("No user id for recs, returning similar items for the item specified");
+    } catch (Exception ex) {
+      logger.error("Error when read recent events: \n");
+      throw ex;
+    }
+
+    Float userEventBias = query.getUserBias();
+    Float userEventsBoost;
+    if (userEventBias > 0 && userEventBias != 1) {
+      userEventsBoost = userEventBias;
+    } else
+      userEventsBoost = null;
+
+    List<BoostableCorrelators> boostableCorrelators = new ArrayList<>();
+
+    for (String action : queryEventNames) {
+      Set<String> items = new HashSet<>();
+
+      for (Event e : recentEvents) {
+        if (e.event().equals(action) && items.size() < maxQueryEvents) {
+          items.add(e.targetEntityId().toString()); // converting Option<String> to JAVA string, since Event is a native pio scala class
+        }
+      }
+      List<String> stringList = new ArrayList<>(items); // Boostable correlators needs a unique list, .distinct in scala
+      boostableCorrelators.add(new BoostableCorrelators(action, stringList, userEventsBoost));
+    }
+
+    return new Tuple2<>(boostableCorrelators, recentEvents);
   }
 
   private Tuple2<String, List<Event>> buildQuery(Query query) {
