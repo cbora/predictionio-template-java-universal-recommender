@@ -395,4 +395,10 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         List<String> queryEventNames = query.getEventNamesOrElse(modelEventNames);
         throw new RuntimeException("Not yet implemented");
     }
+
+    // Need to fix - stashing so I can look at richie's thing. 
+    private List<JsonAST.JValue> buildQueryMust(Query query, List<BoostableCorrelators> boostable) {
+        return new ArrayList<JsonAST.JValue>();
+    }
+
 }
