@@ -459,6 +459,8 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
               true,
               Duration.create(200, "millis")
           );
+      //TODO : This method does not throw "TimeOut" Exception, like the scala version
+
     } catch (NoSuchElementException ex) {
       logger.info("No user id for recs, returning similar items for the item specified");
     } catch (Exception ex) {
@@ -471,12 +473,12 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
     if (userEventBias > 0 && userEventBias != 1) {
       userEventsBoost = userEventBias;
     } else
-      userEventsBoost = null;
+      userEventsBoost = null; // TODO : returning null, instead of None.. change BoostableCorrelators to use Optional??
 
     List<BoostableCorrelators> boostableCorrelators = new ArrayList<>();
 
     for (String action : queryEventNames) {
-      Set<String> items = new HashSet<>();
+      Set<String> items = new LinkedHashSet<>();
 
       for (Event e : recentEvents) {
         if (e.event().equals(action) && items.size() < maxQueryEvents) {
@@ -484,6 +486,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         }
       }
       List<String> stringList = new ArrayList<>(items); // Boostable correlators needs a unique list, .distinct in scala
+      Collections.reverse(stringList);
       boostableCorrelators.add(new BoostableCorrelators(action, stringList, userEventsBoost));
     }
 
