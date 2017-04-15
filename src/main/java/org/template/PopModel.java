@@ -43,14 +43,14 @@ public class PopModel {
      * @param eventNames names of events we want to look at
      * @param eventStore store of events we want to look at
      * @param duration length of time we want to look at
-     * @param offsetDate look at events within [offsetDate - duration, offsetDate). Defaults to now() if empty string or invalid syntax.
+     * @param offsetDate look at events within [offsetDate - duration, offsetDate). Defaults to now() if null or invalid syntax.
      * @return JavaPairRDD &lt ItemID, Double &gt
      */
     public JavaPairRDD<String, Double> calc(String modelName, List<String> eventNames,
                                             IEventStore eventStore, Integer duration, String offsetDate) {
         // end should always be now except in unusual instances like testing
         DateTime end;
-        if (offsetDate.isEmpty()) {
+        if (offsetDate == null) {
             end = DateTime.now();
         } else {
             try {
