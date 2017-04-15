@@ -20,7 +20,7 @@ public class BiDictionaryJava extends BiMapJava{
     BiDictionary bdict;
 
     public BiDictionaryJava(BiDictionary bdict){
-        bdict = bdict;
+        this.bdict = bdict;
     }
 
     public BiDictionaryJava(List<String> l){

@@ -98,6 +98,7 @@ public class PreparatorTest {
 
         // create the PreparedData
         PreparedData preparedData = myPreparator.prepare(sc,trainingData);
+        PD = preparedData;
 
         //List<Tuple2<String, IndexedDataset>> preparedActions = preparedData.getActions();
         //JavaPairRDD<String,PropertyMap> preparedFieldsRDD = preparedData.getFieldsRDD();

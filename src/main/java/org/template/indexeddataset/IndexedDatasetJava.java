@@ -60,14 +60,13 @@ public class IndexedDatasetJava implements IndexedDataset {
     public static IndexedDatasetJava apply(JavaPairRDD<String,String> rdd,
                                            Optional<BiDictionaryJava> existingRowIDs,
                                            SparkContext sc){
-
-        Optional<BiDictionary> op = Optional.empty();
-        if (existingRowIDs.isPresent()){
-            op = Optional.of(existingRowIDs.get().bdict);
+        scala.Option<BiDictionary> op;
+        if (!existingRowIDs.isPresent()){
+            op = OptionHelper.<BiDictionary>none();
+        } else {
+            op = OptionHelper.<BiDictionary>some(existingRowIDs.get().bdict);
         }
-
-        IndexedDatasetSpark newids =  IndexedDatasetSpark.apply(rdd.rdd(),
-                        OptionHelper.<BiDictionary>some(existingRowIDs.get().bdict), sc);
+        IndexedDatasetSpark newids =  IndexedDatasetSpark.apply(rdd.rdd(), op, sc);
         return new IndexedDatasetJava(newids);
     }
 
