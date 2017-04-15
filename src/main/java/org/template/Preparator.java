@@ -52,9 +52,8 @@ public class Preparator extends PJavaPreparator<TrainingData, PreparedData> {
         // make sure the same user ids map to the correct events for merged user dictionaries
         for(Tuple2<String,JavaPairRDD<String,String>> entry : trainingData.getActions()) {
 
-            String eventName = entry._1;
-            JavaPairRDD<String,String> eventIDS = entry._2;
-
+            String eventName = entry._1();
+            JavaPairRDD<String,String> eventIDS = entry._2();
 
             // passing in previous row dictionary will use the values if they exist
             // and append any new ids, so after all are constructed we have all user ids in the last dictionary
@@ -67,8 +66,8 @@ public class Preparator extends PJavaPreparator<TrainingData, PreparedData> {
 
         List<Tuple2<String,IndexedDatasetJava>> rowAdjustedIds = new ArrayList<>();
 
-        // check to see that there are events in primary event IndexedDataset and abort if not
-        if(!userDictionary.isPresent()){
+        // check to see that there are events in primary event IndexedDataset and return an empty list if not
+        if(userDictionary.isPresent()){
 
             // now make sure all matrices have identical row space since this corresponds to all users
             // with the primary event since other users do not contribute to the math

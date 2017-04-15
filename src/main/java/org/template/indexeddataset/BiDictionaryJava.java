@@ -38,4 +38,14 @@ public class BiDictionaryJava extends BiMapJava{
         BiDictionary newBdict = bdict.merge(JavaConverters.asScalaIterableConverter(keys).asScala().toSeq());
         return new BiDictionaryJava(newBdict);
     }
+
+    @Override
+    public int size(){
+        return bdict.size();
+    }
+
+    @Override
+    public String toString(){
+        return bmap.toString();
+    }
 }
