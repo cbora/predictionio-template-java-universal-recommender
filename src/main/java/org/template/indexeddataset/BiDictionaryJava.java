@@ -20,7 +20,7 @@ public class BiDictionaryJava extends BiMapJava{
     BiDictionary bdict;
 
     public BiDictionaryJava(BiDictionary bdict){
-        bdict = bdict;
+        this.bdict = bdict;
     }
 
     public BiDictionaryJava(List<String> l){
@@ -37,5 +37,15 @@ public class BiDictionaryJava extends BiMapJava{
     public BiDictionaryJava merge(List<String> keys){
         BiDictionary newBdict = bdict.merge(JavaConverters.asScalaIterableConverter(keys).asScala().toSeq());
         return new BiDictionaryJava(newBdict);
+    }
+
+    @Override
+    public int size(){
+        return bdict.size();
+    }
+
+    @Override
+    public String toString(){
+        return bmap.toString();
     }
 }
