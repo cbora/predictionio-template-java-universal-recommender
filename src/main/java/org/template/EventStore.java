@@ -1,6 +1,7 @@
 package org.template;
 
 
+import lombok.AllArgsConstructor;
 import org.apache.predictionio.data.storage.Event;
 import org.apache.predictionio.data.store.java.OptionHelper;
 import org.apache.predictionio.data.store.java.PJavaEventStore;
@@ -12,16 +13,9 @@ import scala.Option;
 
 import java.util.List;
 
+@AllArgsConstructor
 public class EventStore implements IEventStore  {
-    private final String appName;
-
-    /**
-     * Constructor
-     * @param appName name of app whose events we want to look at
-     */
-    public EventStore(String appName) {
-        this.appName = appName;
-    }
+    private final String appName; //name of app whose events we want to look at
 
     @Override
     public JavaRDD<Event> eventsRDD(SparkContext sc, List<String> eventNames, Interval interval) {
