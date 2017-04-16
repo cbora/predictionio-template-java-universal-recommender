@@ -356,23 +356,38 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
 
     @Override
     public NullModel train(SparkContext sc, PreparedData preparedData) {
-        if (this.recsModel.equals(RecsModel.All) ||
-                this.recsModel.equals(RecsModel.BF)) {
+        if (this.recsModel.equals(RecsModel.All)) {
             return this.calcAll(sc, preparedData);
         } else if (this.recsModel.equals(RecsModel.CF)) {
             return this.calcAll(sc, preparedData, false);
+        } else if (this.recsModel.equals(RecsModel.BF)) {
+            return this.calcPop(sc, preparedData);
         } else {
             throw new IllegalArgumentException(
                     String.format("| Bad algorithm param recsModel=[%s] in engine definition params, possibly a bad json value.  |Use one of the available parameter values (%s).",
-                    this.recsModel, new RecsModel().toString())
+                            this.recsModel, new RecsModel().toString())
             );
         }
     }
 
     public NullModel calcPop(SparkContext sc, PreparedData data) {
-        throw new RuntimeException("Not yet implemented; waiting on engine" +
-                " team to modify PreparedData");
+        JavaPairRDD<String, Map<String, JsonAST.JValue>> fieldsRDD = data.getFieldsRDD();
+        JavaPairRDD<String, Map<String, JsonAST.JValue>> ranksRDD = getRanksRDD(fieldsRDD, sc);
 
+        JavaPairRDD<String, Map<String, JsonAST.JValue>> currentMetadataRDD = EsClient.getInstance().getRDD(esIndex, esType, sc);
+        JavaPairRDD<String, Map<String, JsonAST.JValue>> propertiesRDD = currentMetadataRDD.fullOuterJoin(ranksRDD).mapToPair(new CalcAllFunction());
+
+        // singleton list for propertiesRdd
+        ArrayList<JavaPairRDD<String, Map<String, JsonAST.JValue>>> pList = new ArrayList<>();
+        pList.add(fieldsRDD.cache());
+        pList.add(propertiesRDD.cache());
+        new URModel(
+                new ArrayList<Tuple2<String, IndexedDataset>>(),
+                pList,
+                getRankingMapping(),
+                false,
+                sc).save(dateNames, esIndex, esType);
+        return new NullModel();
     }
 
     @Override
@@ -380,4 +395,10 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         List<String> queryEventNames = query.getEventNamesOrElse(modelEventNames);
         throw new RuntimeException("Not yet implemented");
     }
+
+    // Need to fix - stashing so I can look at richie's thing. 
+    private List<JsonAST.JValue> buildQueryMust(Query query, List<BoostableCorrelators> boostable) {
+        return new ArrayList<JsonAST.JValue>();
+    }
+
 }
