@@ -96,18 +96,16 @@ public class PreparatorTest {
     }
 
     @Test
-    public void fieldsConversion() throws Exception {
+    public void preparatorTest() throws Exception {
         JavaPairRDD<String,HashMap<String,JsonAST.JValue>> PDFields = PD.getFieldsRDD();
+
         Map<String,JsonAST.JValue> truthMap = (PDFields.lookup("truth expression")).get(0);
         Map<String,JsonAST.JValue> falseMap = (PDFields.lookup("false expression")).get(0);
         JsonAST.JValue JTrue = truthMap.get("t");
         JsonAST.JValue JFalse = falseMap.get("f");
         assertTrue((boolean) JTrue.values());
         assertFalse((boolean) JFalse.values());
-    }
 
-    @Test
-    public void actionsConversion() throws Exception {
         Tuple2<String,IndexedDatasetJava> first = PD.getActions().get(0);
         Tuple2<String,IndexedDatasetJava> second = PD.getActions().get(1);
 
@@ -122,6 +120,4 @@ public class PreparatorTest {
         //todo: include more tests here if the integration testing fails on Preparator
         //todo: difficult to test correctness of conversion from RDD -> indexedDatasetJava
     }
-
-
 }

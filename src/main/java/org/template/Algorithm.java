@@ -205,9 +205,9 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
             ));
         }
 
-        JavaPairRDD<String, Map<String, JsonAST.JValue>> propertiesRDD;
+        JavaPairRDD<String, HashMap<String, JsonAST.JValue>> propertiesRDD;
         if (calcPopular) {
-            JavaPairRDD<String, Map<String, JsonAST.JValue>> ranksRdd = getRanksRDD(preparedData.getFieldsRDD(), sc);
+            JavaPairRDD<String, HashMap<String, JsonAST.JValue>> ranksRdd = getRanksRDD(preparedData.getFieldsRDD(), sc);
             propertiesRDD = preparedData.getFieldsRDD().fullOuterJoin(ranksRdd).mapToPair(new CalcAllFunction());
         } else {
             propertiesRDD = RDDUtils.getEmptyPairRDD(sc);
@@ -216,7 +216,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         logger.info("Correlators created now putting into URModel");
 
         // singleton list for propertiesRdd
-        ArrayList<JavaPairRDD<String, Map<String, JsonAST.JValue>>> pList = new ArrayList<>();
+        ArrayList<JavaPairRDD<String, HashMap<String, JsonAST.JValue>>> pList = new ArrayList<>();
         pList.add(propertiesRDD);
         new URModel(
                 cooccurrenceCorrelators,
@@ -240,20 +240,20 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
      */
     private static class CalcAllFunction implements
             PairFunction<
-                    Tuple2<String,Tuple2<Optional<Map<String,JsonAST.JValue>>,Optional<Map<String, JsonAST.JValue>>>>,
+                    Tuple2<String,Tuple2<Optional<HashMap<String,JsonAST.JValue>>,Optional<HashMap<String, JsonAST.JValue>>>>,
                     String,
-                    Map<String,JsonAST.JValue>
+                    HashMap<String,JsonAST.JValue>
                     >{
-        public Tuple2<String,Map<String, JsonAST.JValue>> call(
-                Tuple2<String,Tuple2<Optional<Map<String,JsonAST.JValue>>,Optional<Map<String, JsonAST.JValue>>>> t){
+        public Tuple2<String,HashMap<String, JsonAST.JValue>> call(
+                Tuple2<String,Tuple2<Optional<HashMap<String,JsonAST.JValue>>,Optional<HashMap<String, JsonAST.JValue>>>> t){
 
             String item = t._1();
-            Optional<Map<String, JsonAST.JValue>> oFieldsPropMap = t._2()._1();
-            Optional<Map<String, JsonAST.JValue>> oRankPropMap = t._2()._2();
+            Optional<HashMap<String, JsonAST.JValue>> oFieldsPropMap = t._2()._1();
+            Optional<HashMap<String, JsonAST.JValue>> oRankPropMap = t._2()._2();
 
             if (oFieldsPropMap.isPresent() && oRankPropMap.isPresent()){
-                Map<String, JsonAST.JValue> fieldPropMap = oFieldsPropMap.get();
-                Map<String, JsonAST.JValue> rankPropMap = oRankPropMap.get();
+                HashMap<String, JsonAST.JValue> fieldPropMap = oFieldsPropMap.get();
+                HashMap<String, JsonAST.JValue> rankPropMap = oRankPropMap.get();
                 HashMap<String, JsonAST.JValue> newMap = new HashMap<>(fieldPropMap);
                 newMap.putAll(rankPropMap);
                 return new Tuple2<>(item, newMap);
@@ -276,9 +276,9 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
      */
     private static class RankFunction implements
             PairFunction<
-                    Tuple2<String,Tuple2<Optional<Map<String, JsonAST.JValue>>,Optional<Double>>>,
+                    Tuple2<String,Tuple2<Optional<HashMap<String, JsonAST.JValue>>,Optional<Double>>>,
                     String,
-                    Map<String, JsonAST.JValue>
+                    HashMap<String, JsonAST.JValue>
                             >{
 
         private String fieldName;
@@ -287,15 +287,15 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         }
 
 
-        public Tuple2<String,Map<String, JsonAST.JValue>> call(
-                Tuple2<String,Tuple2<Optional<Map<String, JsonAST.JValue>>,Optional<Double>>> t){
+        public Tuple2<String,HashMap<String, JsonAST.JValue>> call(
+                Tuple2<String,Tuple2<Optional<HashMap<String, JsonAST.JValue>>,Optional<Double>>> t){
 
             String itemID = t._1();
-            Optional<Map<String, JsonAST.JValue>> oPropMap = t._2()._1();
+            Optional<HashMap<String, JsonAST.JValue>> oPropMap = t._2()._1();
             Optional<Double> oRank = t._2()._2();
 
             if (oPropMap.isPresent() && oRank.isPresent()){
-                Map<String, JsonAST.JValue> propMap = oPropMap.get();
+                HashMap<String, JsonAST.JValue> propMap = oPropMap.get();
                 HashMap<String, JsonAST.JValue> newMap = new HashMap<>(propMap);
                 newMap.put(fieldName, new JsonAST.JDouble(oRank.get()) );
                 return new Tuple2<>(itemID, newMap);
@@ -317,8 +317,8 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
      *  @param sc the current Spark context
      *  @return
      */
-    private JavaPairRDD<String, Map<String, JsonAST.JValue>> getRanksRDD(
-            JavaPairRDD<String, Map<String, JsonAST.JValue>> fieldsRdd,
+    private JavaPairRDD<String, HashMap<String, JsonAST.JValue>> getRanksRDD(
+            JavaPairRDD<String, HashMap<String, JsonAST.JValue>> fieldsRdd,
             SparkContext sc
             ){
         PopModel popModel = new PopModel(fieldsRdd, sc);
@@ -339,7 +339,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
             rankRDDs.add(new Tuple2<>(rankingFieldName, rankRdd));
         }
 
-        JavaPairRDD<String, Map<String, JsonAST.JValue>> acc = RDDUtils.getEmptyPairRDD(sc);
+        JavaPairRDD<String, HashMap<String, JsonAST.JValue>> acc = RDDUtils.getEmptyPairRDD(sc);
         // TODO: Is functional [fold & map] more efficient than looping?
         for (Tuple2<String, JavaPairRDD<String, Double>> t : rankRDDs){
             String fieldName = t._1();
