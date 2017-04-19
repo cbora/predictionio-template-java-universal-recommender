@@ -1,12 +1,14 @@
 package org.template;
 
-import com.fatboyindustrial.gsonjodatime.Converters;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.junit.Before;
 import org.junit.Test;
 
-import static org.junit.Assert.assertEquals;
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.junit.Assert.*;
 
 /**
  * Unit tests for AlgorithmParams class
@@ -60,7 +62,7 @@ public class AlgorithmParamsTest {
       "\t\"appName\": \"handmade\",\n" +
       "\t\"indexName\": \"urindex\",\n" +
       "\t\"typeName\": \"items\",\n" +
-      "\t\"recsModel\": null,\n" +
+      "\t\"recsModel\": \"\",\n" +
       "\t\"eventNames\": [\"purchase\", \"view\"],\n" +
       "\t\"blacklistEvents\": [\"delete\"],\n" +
       "\t\"maxQueryEvents\": \"4\",\n" +
@@ -98,8 +100,8 @@ public class AlgorithmParamsTest {
   @Before
   public void init() {
     GsonBuilder builder = new GsonBuilder();
-    builder.registerTypeAdapterFactory(new DateRangeTypeAdapterFactory());
-    this.gson = Converters.registerDateTime(builder).create();
+    builder.registerTypeAdapterFactory(new AlgorithmParamsTypeAdapterFactory());
+    this.gson = builder.create();
   }
 
   @Test
@@ -189,6 +191,186 @@ public class AlgorithmParamsTest {
   public void testGetSeed() {
     AlgorithmParams param = gson.fromJson(paramsJson, AlgorithmParams.class);
     assertEquals(new Long(4L), param.getSeedOrElse(0L));
+  }
+
+  @Test
+  public void toStringTest() {
+    AlgorithmParams param = gson.fromJson(paramsJson, AlgorithmParams.class);
+    assertEquals("AlgorithmParams{appName: handmadeindexName: urindextypeName: itemsrecsModel: eventNames: [purchase, view]blacklistEvents: [delete]maxQueryEvents: 4maxEventsPerEventType: 4maxCorrelatorsPerEventType: 4num: 4userBias: 5.0itemBias: 5.0returnSelf: falsefields: [Field{, name= item1, values= [val1, val2], bias= 2.0}]rankings: [RankingParams{name: nameValuetype: nulleventNames: [purchase, view]offsetDate: 2017-08-15T11:28:45.114-07:00endDate: 2017-08-15T11:28:45.114-07:00duration: }]availableDateName: availableexpireDateName: expiresdateName: dateindicators: [IndicatorParams{name: nameValuemaxItemsPerUser: 4maxCorrelatorsPerItem: 4minLLR: 4.3}]seed: 4}", param.toString());
+  }
+
+  @Test
+  public void toConstructorTest() {
+    String appName = "handle";
+    String indexName = "index";
+    String typeName = "typeName";
+    String recsModel = "recsModel";
+
+    List<String> eventNames = new ArrayList<>();
+    eventNames.add("event1");
+
+    List<String> blacklistEvents = new ArrayList<>();
+    blacklistEvents.add("blackListEvent1");
+
+    Integer maxQueryEvents = 10;
+    Integer maxEventsPerEventType = 10;
+    Integer maxCorrelatorsPerEventType = 10;
+    Integer num = 10;
+    Float userBias = 10.10f;
+    Float itemBias = 10.21f;
+    Boolean returnSelf = false;
+    List<Field> fields = new ArrayList<>();
+    fields.add(new Field("name", new ArrayList<>(), 10.0f));
+
+    List<RankingParams> rankings = new ArrayList<>();
+    rankings.add(new RankingParams());
+
+    String availableDateName = "availableDateName";
+    String expireDateName = "expireDateName";
+    String dateName = "dateName";
+
+    List<IndicatorParams> indicators = new ArrayList<>();
+    indicators.add(new IndicatorParams("name", 12, 12, 10.0));
+
+    Long seed = Long.valueOf(100000);
+
+    AlgorithmParams params = new AlgorithmParams(appName,
+        indexName,
+        typeName,
+        recsModel,
+        eventNames,
+        blacklistEvents,
+        maxQueryEvents,
+        maxEventsPerEventType,
+        maxCorrelatorsPerEventType,
+        num,
+        userBias,
+        itemBias,
+        returnSelf,
+        fields,
+        rankings,
+        availableDateName,
+        expireDateName,
+        dateName,
+        indicators,
+        seed);
+
+    //Test the constructor
+    assertEquals("handle", params.getAppName());
+    assertEquals("index", params.getIndexName());
+    assertEquals("typeName", params.getTypeName());
+    assertEquals("recsModel", params.getRecsModel());
+    assertEquals("event1", params.getEventNames().get(0));
+    assertEquals("blackListEvent1", params.getBlacklistEvents().get(0));
+    assertEquals(new Integer(10), params.getMaxQueryEvents());
+    assertEquals(new Integer(10), params.getMaxEventsPerEventType());
+    assertEquals(new Integer(10), params.getMaxCorrelatorsPerEventType());
+    assertEquals(new Integer(10), params.getNum());
+    assertEquals(new Float(10.10), params.getUserBias());
+    assertEquals(new Float(10.21), params.getItemBias());
+    assertEquals(false, params.getReturnSelf());
+    assertEquals("dateName", params.getDateName());
+    assertEquals("expireDateName", params.getExpireDateName());
+    assertEquals("availableDateName", params.getAvailableDateName());
+    assertEquals("name", params.getFields().get(0).getName());
+    assertEquals("name", params.getIndicators().get(0).getName());
+    assertEquals(new Long(100000), params.getSeed());
+
+  }
+
+
+  /**
+   * {}
+   */
+  //This is a compulsory field
+  @Test(expected = IllegalArgumentException.class)
+  public void emptyJsonParams() {
+    AlgorithmParams params = gson.fromJson("{}", AlgorithmParams.class);
+  }
+
+
+  /**
+   * {
+   * "typeName": "items",
+   * "eventNames": ["purchase", "view"],
+   * "recsModel": "backfill",
+   * "rankings": [{
+   * "name": "trendRank",
+   * "type": "trending",
+   * "eventNames": ["purchase", "view"],
+   * "duration": 259200
+   * }]
+   * }
+   */
+  //This is a compulsory field  appName
+  @Test(expected = IllegalArgumentException.class)
+  public void appNameRequiredNotPresent() {
+    String minParamsJson = "{\n" +
+        "        \"indexName\": \"urindex\",\n" +
+        "        \"typeName\": \"items\",\n" +
+        "        \"eventNames\": [\"purchase\", \"view\"],\n" +
+        "        \"recsModel\": \"backfill\",\n" +
+        "        \"rankings\": [{\n" +
+        "          \"name\": \"trendRank\",\n" +
+        "          \"type\": \"trending\",\n" +
+        "          \"eventNames\": [\"purchase\", \"view\"],\n" +
+        "          \"duration\": 259200\n" +
+        "        }]\n" +
+        "      }";
+    AlgorithmParams params = gson.fromJson(minParamsJson, AlgorithmParams.class);
+  }
+
+
+  /**
+   * {
+   * "appName": "handmade",
+   * "typeName": "items",
+   * "eventNames": ["purchase", "view"],
+   * "recsModel": "backfill",
+   * "rankings": [{
+   * "name": "trendRank",
+   * "type": "trending",
+   * "eventNames": ["purchase", "view"],
+   * "duration": 259200
+   * }]
+   * }
+   */
+  //This is a compulsory field  indexName
+  @Test(expected = IllegalArgumentException.class)
+  public void indexNameRequiredNotPresent() {
+    String missingIndexNameParamsJson = "{\n" +
+        "        \"appName\": \"handmade\",\n" +
+        "        \"typeName\": \"items\",\n" +
+        "        \"eventNames\": [\"purchase\", \"view\"],\n" +
+        "        \"recsModel\": \"backfill\",\n" +
+        "        \"rankings\": [{\n" +
+        "          \"name\": \"trendRank\",\n" +
+        "          \"type\": \"trending\",\n" +
+        "          \"eventNames\": [\"purchase\", \"view\"],\n" +
+        "          \"duration\": 259200\n" +
+        "        }]\n" +
+        "      }";
+    AlgorithmParams params = gson.fromJson(missingIndexNameParamsJson, AlgorithmParams.class);
+  }
+
+
+  //This is a compulsory field
+  @Test(expected = IllegalArgumentException.class)
+  public void eventNamesOrIndicatorsRequiredNotPresent() {
+    String minParamsJson = "{\n" +
+        "        \"appName\": \"handmade\",\n" +
+        "        \"indexName\": \"urindex\",\n" +
+        "        \"typeName\": \"items\",\n" +
+        "        \"eventNames\": [\"purchase\", \"view\"],\n" +
+        "        \"recsModel\": \"backfill\",\n" +
+        "        \"rankings\": [{\n" +
+        "          \"name\": \"trendRank\",\n" +
+        "          \"type\": \"trending\",\n" +
+        "          \"eventNames\": [\"purchase\", \"view\"],\n" +
+        "          \"duration\": 259200\n" +
+        "        }]\n" +
+        "      }";
+    AlgorithmParams params = gson.fromJson(minParamsJson, AlgorithmParams.class);
   }
 
 
