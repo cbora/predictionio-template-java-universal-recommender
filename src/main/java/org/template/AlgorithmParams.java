@@ -63,7 +63,7 @@ public class AlgorithmParams implements Params {
     if (typeName == null || typeName.isEmpty())
       throw new IllegalArgumentException("Type name is missing");
 
-    if ((eventNames == null || eventNames.isEmpty()) || (indicators == null || indicators.isEmpty()))
+    if ((eventNames == null || eventNames.isEmpty()) && (indicators == null || indicators.isEmpty()))
       throw new IllegalArgumentException("One of the eventnames or indicatornames can be omited but not both");
 
     this.appName = appName;

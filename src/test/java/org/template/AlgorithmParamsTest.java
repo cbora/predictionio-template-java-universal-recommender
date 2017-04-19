@@ -291,6 +291,7 @@ public class AlgorithmParamsTest {
 
   /**
    * {
+   * "indexName": "urindex",
    * "typeName": "items",
    * "eventNames": ["purchase", "view"],
    * "recsModel": "backfill",
@@ -353,6 +354,36 @@ public class AlgorithmParamsTest {
     AlgorithmParams params = gson.fromJson(missingIndexNameParamsJson, AlgorithmParams.class);
   }
 
+  /**
+   * {
+   * "appName": "handmade",
+   * "eventNames": ["purchase", "view"],
+   * "recsModel": "backfill",
+   * "rankings": [{
+   * "name": "trendRank",
+   * "type": "trending",
+   * "eventNames": ["purchase", "view"],
+   * "duration": 259200
+   * }]
+   * }
+   */
+  //This is a compulsory field  indexName
+  @Test(expected = IllegalArgumentException.class)
+  public void typeNameRequiredNotPresent() {
+    String missingIndexNameParamsJson = "{\n" +
+        "        \"appName\": \"handmade\",\n" +
+        "        \"eventNames\": [\"purchase\", \"view\"],\n" +
+        "        \"recsModel\": \"backfill\",\n" +
+        "        \"rankings\": [{\n" +
+        "          \"name\": \"trendRank\",\n" +
+        "          \"type\": \"trending\",\n" +
+        "          \"eventNames\": [\"purchase\", \"view\"],\n" +
+        "          \"duration\": 259200\n" +
+        "        }]\n" +
+        "      }";
+    AlgorithmParams params = gson.fromJson(missingIndexNameParamsJson, AlgorithmParams.class);
+  }
+
 
   //This is a compulsory field
   @Test(expected = IllegalArgumentException.class)
@@ -361,7 +392,6 @@ public class AlgorithmParamsTest {
         "        \"appName\": \"handmade\",\n" +
         "        \"indexName\": \"urindex\",\n" +
         "        \"typeName\": \"items\",\n" +
-        "        \"eventNames\": [\"purchase\", \"view\"],\n" +
         "        \"recsModel\": \"backfill\",\n" +
         "        \"rankings\": [{\n" +
         "          \"name\": \"trendRank\",\n" +
