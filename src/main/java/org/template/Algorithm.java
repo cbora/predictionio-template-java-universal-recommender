@@ -1,6 +1,8 @@
 package org.template;
 
 import com.google.common.base.Optional;
+import com.google.gson.*;
+import com.google.gson.reflect.TypeToken;
 import org.apache.mahout.math.cf.DownsamplableCrossOccurrenceDataset;
 import org.apache.mahout.math.cf.ParOpts;
 import org.apache.mahout.math.indexeddataset.IndexedDataset;
@@ -14,6 +16,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.function.PairFunction;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
+import org.joda.time.DateTime;
 import org.json4s.JsonAST;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -138,6 +141,22 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
       this.actionName = actionName;
       this.itemIDs = itemIDs;
       this.boost = boost;
+    }
+
+    /**
+     * Overrides these two functions to use Hashset in getBoostedMetadata()
+     */
+    @Override
+    public boolean equals(Object obj) {
+      BoostableCorrelators other = (BoostableCorrelators) obj;
+      return actionName.equals(other.actionName) &&
+          itemIDs.equals(other.itemIDs) &&
+          boost.equals(other.boost);
+    }
+
+    @Override
+    public int hashCode() {
+      return actionName.hashCode() + itemIDs.hashCode() + boost.hashCode();
     }
 
     public FilterCorrelators toFilterCorrelators() {
@@ -389,10 +408,25 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
   }
 
   public NullModel calcPop(SparkContext sc, PreparedData data) {
-    throw new RuntimeException("Not yet implemented; waiting on engine" +
-        " team to modify PreparedData");
+    JavaPairRDD<String, Map<String, JsonAST.JValue>> fieldsRDD = data.getFieldsRDD();
+    JavaPairRDD<String, Map<String, JsonAST.JValue>> ranksRDD = getRanksRDD(fieldsRDD, sc);
 
+    JavaPairRDD<String, Map<String, JsonAST.JValue>> currentMetadataRDD = EsClient.getInstance().getRDD(esIndex, esType, sc);
+    JavaPairRDD<String, Map<String, JsonAST.JValue>> propertiesRDD = currentMetadataRDD.fullOuterJoin(ranksRDD).mapToPair(new CalcAllFunction());
+
+    // singleton list for propertiesRdd
+    ArrayList<JavaPairRDD<String, Map<String, JsonAST.JValue>>> pList = new ArrayList<>();
+    pList.add(fieldsRDD.cache());
+    pList.add(propertiesRDD.cache());
+    new URModel(
+        new ArrayList<Tuple2<String, IndexedDataset>>(),
+        pList,
+        getRankingMapping(),
+        false,
+        sc).save(dateNames, esIndex, esType);
+    return new NullModel();
   }
+
 
   @Override
   public PredictedResult predict(NullModel model, Query query) {
@@ -404,7 +438,6 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
     SearchHits searchHits = EsClient.getInstance().search(builtQuery._1(), esIndex);
     Boolean withRanks = query.getRankingsOrElse(false);
     List<ItemScore> recs = new ArrayList<>();
-
 
     if (searchHits.totalHits() > 0) {
       SearchHit[] hits = searchHits.getHits();
@@ -428,14 +461,10 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
       }
       logger.info("Results: ${searchHits.getHits.length} retrieved of a possible ${searchHits.totalHits()}");
       return new PredictedResult(recs);
-    }
-
-    // No search hits.. case "_" in scala version
-    else {
+    } else {
       logger.info("No results for query " + query.toString());
       return new PredictedResult(null);
     }
-
   }
 
   /**
@@ -459,8 +488,6 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
               true,
               Duration.create(200, "millis")
           );
-      //TODO : This method does not throw "TimeOut" Exception, like the scala version
-
     } catch (NoSuchElementException ex) {
       logger.info("No user id for recs, returning similar items for the item specified");
     } catch (Exception ex) {
@@ -473,12 +500,12 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
     if (userEventBias > 0 && userEventBias != 1) {
       userEventsBoost = userEventBias;
     } else
-      userEventsBoost = null; // TODO : returning null, instead of None.. change BoostableCorrelators to use Optional??
+      userEventsBoost = null;
 
     List<BoostableCorrelators> boostableCorrelators = new ArrayList<>();
 
     for (String action : queryEventNames) {
-      Set<String> items = new LinkedHashSet<>();
+      Set<String> items = new HashSet<>();
 
       for (Event e : recentEvents) {
         if (e.event().equals(action) && items.size() < maxQueryEvents) {
@@ -486,12 +513,167 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         }
       }
       List<String> stringList = new ArrayList<>(items); // Boostable correlators needs a unique list, .distinct in scala
-      Collections.reverse(stringList);
       boostableCorrelators.add(new BoostableCorrelators(action, stringList, userEventsBoost));
     }
 
     return new Tuple2<>(boostableCorrelators, recentEvents);
   }
+
+  private List<JsonElement> buildQueryMust(Query query, List<BoostableCorrelators> boostable) {
+
+    List<FilterCorrelators> recentUserHistoryFilter = new ArrayList<>();
+    if (userBias < 0.0f) {
+      recentUserHistoryFilter = boostable.stream().map(
+          correlator -> {
+            return correlator.toFilterCorrelators();
+          }
+      ).collect(toList()).subList(0, maxQueryEvents - 1);
+    }
+
+    List<FilterCorrelators> similarItemsFilter = new ArrayList<>();
+    if (userBias < 0.0f) {
+      similarItemsFilter = getBiasedSimilarItems(query).stream()
+          .map(correlator -> correlator.toFilterCorrelators())
+          .collect(toList())
+          .subList(0, maxQueryEvents - 1);
+    }
+
+    List<FilterCorrelators> filteringMetadata = getFilteringMetadata(query);
+    List<JsonElement> filteringDateRange = getFilteringDateRange(query);
+
+    List<FilterCorrelators> allFilteringCorrelators = new ArrayList<>(recentUserHistoryFilter);
+    allFilteringCorrelators.addAll(similarItemsFilter);
+    allFilteringCorrelators.addAll(filteringMetadata);
+
+    GsonBuilder builder = new GsonBuilder();
+    Gson gson = builder.create();
+    List<JsonElement> mustFields = allFilteringCorrelators.stream().map(
+        filterCorrelator -> {
+          String actionName = filterCorrelator.actionName;
+          List<String> itemIDs = filterCorrelator.itemIDs;
+
+          JsonObject obj = new JsonObject();
+          JsonObject innerObj = new JsonObject();
+
+          JsonElement itemIDsObj = gson.toJsonTree(itemIDs, new TypeToken<List<String>>() {
+          }.getType());
+
+          innerObj.add(actionName, itemIDsObj);
+          obj.add("terms", innerObj);
+          obj.addProperty("boost", 0);
+
+          return obj;
+        }
+    ).collect(toList());
+
+    mustFields.addAll(filteringDateRange);
+    return mustFields;
+  }
+
+  private List<FilterCorrelators> getFilteringMetadata(Query query) {
+    List<Field> paramsFilterFields = this.fields.stream()
+        .filter(field -> field.getBias() >= 0.0f)
+        .collect(toList());
+    List<Field> queryFilterFields = query.getFields().stream()
+        .filter(field -> field.getBias() < 0.0f)
+        .collect(toList());
+
+    paramsFilterFields.addAll(queryFilterFields);
+    List<FilterCorrelators> toReturn = paramsFilterFields.stream()
+        .map(field -> new FilterCorrelators(field.getName(), field.getValues()))
+        .distinct()
+        .collect(toList());
+    return toReturn;
+  }
+
+  private List<JsonElement> getFilteringDateRange(Query query) {
+    DateTime currentDateDate = query.getCurrentDate();
+    if (currentDateDate == null)
+      currentDateDate = DateTime.now().toDateTimeISO();
+    String currentDate = currentDateDate.toString();
+
+    List<JsonElement> json = new ArrayList<>();
+    DateRange dr = query.getDateRange();
+
+    if (dr != null && (dr.getAfter() != null || dr.getBefore() != null)) {
+      String name = dr.getName();
+
+      DateTime beforeDate = dr.getBefore();
+      DateTime afterDate = dr.getAfter();
+
+      String before = beforeDate == null ? "" : beforeDate.toString();
+      String after = afterDate == null ? "" : afterDate.toString();
+
+      StringBuilder rangeStart = new StringBuilder()
+          .append("\n{\n  \"constant_score\": {\n    \"filter\": {\n")
+          .append("      \"range\": {\n        \"")
+          .append(name)
+          .append("\": {\n");
+
+      String rangeAfter = new StringBuilder()
+          .append("\n          \"gt\": \"")
+          .append(after)
+          .append("\"\n")
+          .toString();
+
+      String rangeBefore = new StringBuilder()
+          .append("\n          \"lt\": \"")
+          .append(before)
+          .append("\"\n")
+          .toString();
+
+      String rangeEnd = new StringBuilder()
+          .append("\n        }\n      }\n    },\n    \"boost\": 0\n  }\n}\n")
+          .toString();
+
+      StringBuilder range = rangeStart;
+      if (!after.isEmpty()) {
+        range.append(rangeAfter);
+
+        if (!before.isEmpty())
+          range.append(",");
+      }
+      if (!before.isEmpty())
+        range.append(rangeBefore);
+
+      range.append(rangeEnd);
+      JsonElement el = new JsonParser().parse(range.toString());
+      json.add(el);
+    } else if (ap.getAvailableDateName() != null && ap.getExpireDateName() != null) {
+      String availableDate = ap.getAvailableDateName();
+      String expireDate = ap.getExpireDateName();
+
+      String available = new StringBuilder()
+          .append("\n{\n  \"constant_score\": {\n    \"filter\": {\n")
+          .append("      \"range\": {\n        \"")
+          .append(availableDate)
+          .append("\": {\n          \"lte\": \"")
+          .append(currentDate)
+          .append("\"\n        }\n      }\n    },\n    \"boost\": 0\n  }\n}\n")
+          .toString();
+
+      String expire = new StringBuilder()
+          .append("\n{\n  \"constant_score\": {\n    \"filter\": {\n")
+          .append("      \"range\": {\n        \"")
+          .append(expireDate)
+          .append("\": {\n          \"gt\": \"")
+          .append(currentDate)
+          .append("\"\n        }\n      }\n    },\n    \"boost\": 0\n  }\n}\n")
+          .toString();
+
+      JsonElement avEl = new JsonParser().parse(available);
+      JsonElement exEl = new JsonParser().parse(expire);
+      json.add(avEl);
+      json.add(exEl);
+    } else {
+      logger.info("\nMisconfigured date information, either your engine.json date settings " +
+          "or your query's dateRange is incorrect.\n" +
+          "Ignoring date information for this query.");
+    }
+
+    return json;
+  }
+
 
   private Tuple2<String, List<Event>> buildQuery(Query query) {
     List<String> backfillFieldNames = this.rankingFieldNames;
@@ -499,4 +681,122 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
     return null;
   }
 
+  /**
+   * Get similar items for an item, these are already in the action correlators in ES
+   */
+  private List<BoostableCorrelators> getBiasedSimilarItems(Query query) {
+    if (query.getItem() != null) {
+      Map<String, Object> m = EsClient.getInstance().getSource(esIndex, esType, query.getItem());
+
+      if (m != null) {
+        Float itemEventBias = query.getItemBias() == null ? itemBias : query.getItemBias();
+        Float itemEventsBoost = (itemEventBias > 0 && itemEventBias != 1) ? itemEventBias : null;
+
+        ArrayList<BoostableCorrelators> out = new ArrayList<>();
+        for (String action : modelEventNames) {
+          ArrayList<String> items;
+          try {
+            if (m.containsKey(action) && m.get(action) != null) {
+              items = (ArrayList<String>) m.get(action);
+            } else {
+              items = new ArrayList<>();
+            }
+          } catch (ClassCastException e) {
+            logger.warn("Bad value in item [${query.item}] corresponding to key:" +
+                "[$action] that was not a Seq[String] ignored.");
+            items = new ArrayList<>();
+          }
+          List<String> rItems = (items.size() <= maxQueryEvents) ? items : items.subList(0, maxQueryEvents - 1);
+          out.add(new BoostableCorrelators(action, rItems, itemEventsBoost));
+        }
+        return out;
+      } else {
+        return new ArrayList<>();
+      }
+    } else {
+      return new ArrayList<>();
+    }
+  }
+
+  /**
+   * get all metadata fields that potentially have boosts (not filters)
+   */
+  private List<BoostableCorrelators> getBoostedMetadata(Query query) {
+    ArrayList<Field> paramsBoostedFields = new ArrayList<>();
+    for (Field f : fields) {
+      if (f.getBias() < 0f) {
+        paramsBoostedFields.add(f);
+      }
+    }
+
+    ArrayList<Field> queryBoostedFields = new ArrayList<>();
+    if (query.getFields() != null) {
+      for (Field f : query.getFields()) {
+        if (f.getBias() >= 0f) {
+          queryBoostedFields.add(f);
+        }
+      }
+    }
+
+    Set<BoostableCorrelators> out = new HashSet<>();
+    for (Field f : queryBoostedFields) {
+      out.add(new BoostableCorrelators(f.getName(), f.getValues(), f.getBias()));
+    }
+    for (Field f : paramsBoostedFields) {
+      out.add(new BoostableCorrelators(f.getName(), f.getValues(), f.getBias()));
+    }
+    return new ArrayList<>(out);
+  }
+
+  /**
+   * Build should query part
+   */
+  private List<JsonElement> buildQueryShould(Query query, List<BoostableCorrelators> boostable) {
+    // create a list of all boosted query correlators
+    List<BoostableCorrelators> recentUserHistory;
+    if (userBias >= 0f) {
+      recentUserHistory = boostable.subList(0, maxQueryEvents - 1);
+    } else {
+      recentUserHistory = new ArrayList<>();
+    }
+
+    List<BoostableCorrelators> similarItems;
+    if (itemBias >= 0f) {
+      similarItems = getBiasedSimilarItems(query);
+    } else {
+      similarItems = new ArrayList<>();
+    }
+
+    List<BoostableCorrelators> boostedMetadata = getBoostedMetadata(query);
+    recentUserHistory.addAll(similarItems);
+    recentUserHistory.addAll(boostedMetadata);
+
+    ArrayList<JsonElement> shouldFields = new ArrayList<>();
+    Gson gson = new Gson();
+    for (BoostableCorrelators bc : recentUserHistory) {
+      JsonObject obj = new JsonObject();
+      JsonObject innerObj = new JsonObject();
+      //TODO: does render() in Json4S actually produce a String?
+      innerObj.addProperty(bc.actionName, gson.toJson(bc.itemIDs));
+
+      obj.add("terms", innerObj);
+      obj.addProperty("boost", bc.boost);
+      shouldFields.add(obj);
+    }
+
+    String shouldScore =
+        "{\n" +
+            "   \"constant_score\": {\n" +
+            "  \"filter\": {\n" +
+            "  \"match_all\": {}\n" +
+            "},\n" +
+            "  \"boost\": 0\n" +
+            "  }\n" +
+            "}";
+    shouldFields.add(
+        new JsonParser().parse(shouldScore).getAsJsonObject()
+    );
+
+    return shouldFields;
+  }
 }
