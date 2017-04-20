@@ -66,6 +66,12 @@ public class Query implements Serializable, CustomQuerySerializer {
         : this.getWithRanks();
   }
 
+  public Integer getNumOrElse(Integer defaultValue) {
+    return this.num == null
+        ? defaultValue
+        : this.getNum();
+  }
+
   public List<String> getEventNamesOrElse(List<String> defaultValue) {
     return this.eventNames == null
         ? defaultValue

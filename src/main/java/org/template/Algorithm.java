@@ -674,11 +674,77 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
     return json;
   }
 
+  /**
+   * Query strucutre :
+   * {
+   * "size": 0,
+   * "query": {
+   * "bool":{
+   * "should": [{}, {}],
+   * "must": [{}, {}],
+   * "must_not": [{}, {}],
+   * "minimum_should_match": 1
+   * }
+   * },
+   * "sort": [{}, {}]
+   * }
+   *
+   * @param query
+   * @return query string , List of events
+   */
 
   private Tuple2<String, List<Event>> buildQuery(Query query) {
-    List<String> backfillFieldNames = this.rankingFieldNames;
+    List<String> backfillFieldNames = this.rankingFieldNames; // created during the initialization
     // AlgorithmParams is ap
-    return null;
+
+    try {
+      Tuple2<List<BoostableCorrelators>, List<Event>> boostableEvents = getBiasedRecentUserActions(query);
+      int numRecs = query.getNumOrElse(DefaultURAlgorithmParams.DefaultNum);
+      List<JsonElement> should = buildQueryShould(query, boostableEvents._1());
+      List<JsonElement> must = buildQueryMust(query, boostableEvents._1());
+      List<JsonElement> mustNot = buildQueryMustNot(query, boostableEvents._2());
+      List<JsonElement> sort = buildQuerySort();
+
+      JsonObject jsonQuery = new JsonObject(); // Outer most
+      JsonObject innerObj = new JsonObject();
+      JsonObject innerMostObject = new JsonObject();
+
+      // add "size" to outer query
+      jsonQuery.addProperty("size", numRecs);
+
+      // add "query" to outer query
+      jsonQuery.add("query", innerObj);
+      innerObj.add("bool", innerMostObject);
+
+
+      JsonArray shouldJsonArray = new JsonArray();
+      if (should != null) should.forEach(shouldJsonArray::add);
+      innerMostObject.add("should", shouldJsonArray);
+
+      JsonArray mustJsonArray = new JsonArray();
+      if (must != null) must.forEach(mustJsonArray::add);
+      innerMostObject.add("must", mustJsonArray);
+
+      JsonArray mustNotJsonArray = new JsonArray();
+      if (mustNot != null) mustNot.forEach(mustNotJsonArray::add);
+      innerMostObject.add("must_not", mustNotJsonArray);
+
+      innerMostObject.addProperty("minimum_should_match", 1);
+
+      // add "sort" to outer query
+      JsonArray sortJsonArray = new JsonArray();
+      if (sort != null) sort.forEach(sortJsonArray::add);
+      jsonQuery.add("sort", sortJsonArray);
+
+      String queryStr = jsonQuery.toString();
+      logger.info("Query : " + queryStr);
+
+      return new Tuple2<>(queryStr, boostableEvents._2());
+    } catch (IllegalArgumentException ex) {
+      logger.debug("IllegalArgumentException" + ex.getMessage());
+      return new Tuple2<>("", new ArrayList<>());
+    }
+
   }
 
   /**
@@ -799,4 +865,13 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
 
     return shouldFields;
   }
+
+  private List<JsonElement> buildQueryMustNot(Query query, List<Event> boostable) {
+    return null;
+  }
+
+  private List<JsonElement> buildQuerySort() {
+    return null;
+  }
+
 }
