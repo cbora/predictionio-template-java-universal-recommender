@@ -108,7 +108,7 @@ public class Conversions {
         }
 
 
-        public JavaPairRDD<String, java.util.Map<String,JsonAST.JValue>> toStringMapRDD(final String actionName){
+        public JavaPairRDD<String, java.util.HashMap<String,JsonAST.JValue>> toStringMapRDD(final String actionName){
             final BiDictionaryJava rowIDDictionary = indexedDataset.getRowIds();
             final SparkDistributedContext temp = (SparkDistributedContext) indexedDataset.getMatrix().context();
             final SparkContext sc = temp.sc();
@@ -158,14 +158,14 @@ public class Conversions {
                             (JsonAST.JString) columnIDDictionary_bcast.value().inverse()
                                     .getOrElse(item.getKey(),""))); // should always be in the dictionary
 
-                    final java.util.Map<String,JsonAST.JValue> tmp = new HashMap<>();
+                    final java.util.HashMap<String,JsonAST.JValue> tmp = new HashMap<>();
                     tmp.put(actionName,values);
-                    //Map<String,JsonAST.JValue> rtn = JavaConverters.mapAsScalaMapConverter(tmp).asScala();
+                    //HashMap<String,JsonAST.JValue> rtn = JavaConverters.mapAsScalaMapConverter(tmp).asScala();
 
-                    return new Tuple2<String, java.util.Map<String,JsonAST.JValue>>
+                    return new Tuple2<String, java.util.HashMap<String,JsonAST.JValue>>
                             (itemId, tmp);
                 } catch(IllegalArgumentException e) {
-                    return new Tuple2<String, java.util.Map<String,JsonAST.JValue>> (null,null);
+                    return new Tuple2<String, java.util.HashMap<String,JsonAST.JValue>> (null,null);
                 }
 
             }).filter(ele -> ele != null);

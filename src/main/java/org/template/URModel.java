@@ -23,7 +23,7 @@ public class URModel {
     private transient static final Logger logger = LoggerFactory.getLogger(URModel.class);
 
     private final List<Tuple2<String, IndexedDataset>> coocurrenceMatrices;
-    private final List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> propertiesRDDs;
+    private final List<JavaPairRDD<String, HashMap<String,JsonAST.JValue>>> propertiesRDDs;
     private final Map<String,String> typeMappings;
     private final boolean nullModel;
     private final SparkContext sc;
@@ -46,7 +46,7 @@ public class URModel {
         // do they need to be in Elasticsearch format
         logger.info("Converting cooccurrence matrices into correlators");
 
-        final List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> correlatorRDDs = new LinkedList<>();
+        final List<JavaPairRDD<String, HashMap<String,JsonAST.JValue>>> correlatorRDDs = new LinkedList<>();
         for (Tuple2<String,IndexedDataset> t : this.coocurrenceMatrices) {
             final String actionName = t._1();
             final IndexedDataset dataset = t._2();
@@ -58,18 +58,18 @@ public class URModel {
 
         logger.info("Group all properties RDD");
 
-        final List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> allRDDs = new LinkedList<>();
+        final List<JavaPairRDD<String, HashMap<String,JsonAST.JValue>>> allRDDs = new LinkedList<>();
         allRDDs.addAll(correlatorRDDs);
         allRDDs.addAll(propertiesRDDs);
 
-        final JavaPairRDD<String, Map<String,JsonAST.JValue>> groupedRDD = groupAll(allRDDs);
+        final JavaPairRDD<String, HashMap<String,JsonAST.JValue>> groupedRDD = groupAll(allRDDs);
         final JavaRDD<Map<String, Object>> esRDD = groupedRDD.mapPartitions(iter ->
                 {
                     final List<Map<String, Object>> result = new LinkedList<>();
                     while(iter.hasNext()) {
-                        final Tuple2<String, Map<String, JsonAST.JValue>> t = iter.next();
+                        final Tuple2<String, HashMap<String, JsonAST.JValue>> t = iter.next();
                         final String itemId = t._1();
-                        final Map<String, JsonAST.JValue> itemProps = t._2();
+                        final HashMap<String, JsonAST.JValue> itemProps = t._2();
                         final Map<String,Object> propsMap = new HashMap<>();
 
                         for (Map.Entry<String, JsonAST.JValue> entry : itemProps.entrySet()) {
@@ -90,11 +90,16 @@ public class URModel {
         EsClient.getInstance().hotSwap(esIndex, esType, esRDD, esFields, typeMappings);
         return true;
     }
-
-    private JavaPairRDD<String, Map<String,JsonAST.JValue>> groupAll(
-            List<JavaPairRDD<String, Map<String,JsonAST.JValue>>> fields) {
-        final JavaPairRDD<String, Map<String,JsonAST.JValue>> tmp = RDDUtils.unionAllPair(fields, sc);
-        return RDDUtils.combineMapByKey(tmp);
+    private JavaPairRDD<String, HashMap<String,JsonAST.JValue>> groupAll(
+            List<JavaPairRDD<String, HashMap<String,JsonAST.JValue>>> fields) {
+        JavaPairRDD<String, HashMap<String,JsonAST.JValue>> tmp = RDDUtils.unionAllPair(fields, sc);
+        JavaPairRDD<String,Map<String,JsonAST.JValue>> tmp2 = tmp.mapToPair(entry ->
+                new Tuple2<String,Map<String,JsonAST.JValue>>(entry._1(),new HashMap<>(entry._2()))
+        );
+        JavaPairRDD<String,Map<String,JsonAST.JValue>> rtn = RDDUtils.combineMapByKey(tmp2);
+        JavaPairRDD<String,HashMap<String,JsonAST.JValue>> rtn2 = rtn.mapToPair(entry ->
+                new Tuple2<String,HashMap<String,JsonAST.JValue>>(entry._1(),new HashMap<> (entry._2())));
+        return rtn2;
     }
 
     private static Object extractJvalue(List<String> dateNames, String key, JsonAST.JValue value) {

@@ -60,7 +60,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         this.fields = ap.getFields();
         this.randomSeed = ap.getSeedOrElse(System.currentTimeMillis()).intValue();
         this.maxCorrelatorsPerEventType = ap.getMaxCorrelatorsPerEventTypeOrElse(
-          DefaultURAlgorithmParams.DefaultMaxCorrelatorsPerEventType
+                DefaultURAlgorithmParams.DefaultMaxCorrelatorsPerEventType
         );
         this.maxEventsPerEventType = ap.getMaxEventsPerEventTypeOrElse(
                 DefaultURAlgorithmParams.DefaultMaxEventsPerEventType
@@ -144,7 +144,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
 
         // if data is empty then throw an exception
         if(preparedData.getActions().size() == 0 ||
-           preparedData.getActions().get(0)._2().getRowIds().size() == 0){
+                preparedData.getActions().get(0)._2().getRowIds().size() == 0){
             throw new RuntimeException("|There are no users with the primary / conversion event and this is not allowed"+
                     "|Check to see that your dataset contains the primary event.");
         }
@@ -163,7 +163,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
                     ap.getSeed() == null ? (int) System.currentTimeMillis() : ap.getSeed().intValue(),
                     //maxInterestingItemsPerThing
                     ap.getMaxCorrelatorsPerEventType() == null ? DefaultURAlgorithmParams.DefaultMaxCorrelatorsPerEventType
-                        : ap.getMaxCorrelatorsPerEventType(),
+                            : ap.getMaxCorrelatorsPerEventType(),
                     // maxNumInteractions
                     ap.getMaxEventsPerEventType() == null ? DefaultURAlgorithmParams.DefaultMaxEventsPerEventType
                             : ap.getMaxEventsPerEventType(),
@@ -176,16 +176,16 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
             List<DownsamplableCrossOccurrenceDataset> datasets=new ArrayList<DownsamplableCrossOccurrenceDataset>();
             for (int i=0;i<iDs.size();i++){
                 datasets.add(
-                    new DownsamplableCrossOccurrenceDataset(
-                        iDs.get(i),
-                        indicators.get(i).getMaxItemsPerUser() == null ? DefaultURAlgorithmParams.DefaultMaxEventsPerEventType
-                            : indicators.get(i).getMaxItemsPerUser(),
-                        indicators.get(i).getMaxCorrelatorsPerItem() == null ? DefaultURAlgorithmParams.DefaultMaxCorrelatorsPerEventType
-                                : indicators.get(i).getMaxCorrelatorsPerItem(),
-                        OptionHelper.<Object>some(indicators.get(i).getMinLLR()),
-                        OptionHelper.<ParOpts>some(defaultParOpts())
+                        new DownsamplableCrossOccurrenceDataset(
+                                iDs.get(i),
+                                indicators.get(i).getMaxItemsPerUser() == null ? DefaultURAlgorithmParams.DefaultMaxEventsPerEventType
+                                        : indicators.get(i).getMaxItemsPerUser(),
+                                indicators.get(i).getMaxCorrelatorsPerItem() == null ? DefaultURAlgorithmParams.DefaultMaxCorrelatorsPerEventType
+                                        : indicators.get(i).getMaxCorrelatorsPerItem(),
+                                OptionHelper.<Object>some(indicators.get(i).getMinLLR()),
+                                OptionHelper.<ParOpts>some(defaultParOpts())
 
-                    )
+                        )
                 );
             }
 
@@ -205,7 +205,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
             ));
         }
 
-        JavaPairRDD<String, HashMap<String, JsonAST.JValue>> propertiesRDD;
+        JavaPairRDD<String,HashMap<String, JsonAST.JValue>> propertiesRDD;
         if (calcPopular) {
             JavaPairRDD<String, HashMap<String, JsonAST.JValue>> ranksRdd = getRanksRDD(preparedData.getFieldsRDD(), sc);
             propertiesRDD = preparedData.getFieldsRDD().fullOuterJoin(ranksRdd).mapToPair(new CalcAllFunction());
@@ -279,7 +279,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
                     Tuple2<String,Tuple2<Optional<HashMap<String, JsonAST.JValue>>,Optional<Double>>>,
                     String,
                     HashMap<String, JsonAST.JValue>
-                            >{
+                    >{
 
         private String fieldName;
         public RankFunction(String fieldName){
@@ -320,19 +320,19 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
     private JavaPairRDD<String, HashMap<String, JsonAST.JValue>> getRanksRDD(
             JavaPairRDD<String, HashMap<String, JsonAST.JValue>> fieldsRdd,
             SparkContext sc
-            ){
+    ){
         PopModel popModel = new PopModel(fieldsRdd, sc);
         List<Tuple2<String, JavaPairRDD<String, Double>>> rankRDDs = new ArrayList();
         for (RankingParams rp : rankingParams){
             String rankingType = rp.getBackfillType() == null ? DefaultURAlgorithmParams.DefaultBackfillType
-                                : rp.getBackfillType();
+                    : rp.getBackfillType();
             String rankingFieldName = rp.getName() == null ? PopModel.nameByType.get(rankingType)
-                                      : rp.getName();
+                    : rp.getName();
             String durationAsString = rp.getDuration() == null ? DefaultURAlgorithmParams.DefaultBackfillDuration
-                                      : rp.getDuration();
+                    : rp.getDuration();
             Integer duration =  (int) Duration.apply(durationAsString).toSeconds();
             List<String> backfillEvents = rp.getEventNames() == null ? modelEventNames.subList(0,1)
-                                          : rp.getEventNames();
+                    : rp.getEventNames();
             String offsetDate = rp.getOffsetDate();
             JavaPairRDD<String, Double> rankRdd =
                     popModel.calc(rankingType, backfillEvents, new EventStore(appName), duration, offsetDate);
@@ -364,7 +364,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         } else {
             throw new IllegalArgumentException(
                     String.format("| Bad algorithm param recsModel=[%s] in engine definition params, possibly a bad json value.  |Use one of the available parameter values (%s).",
-                    this.recsModel, new RecsModel().toString())
+                            this.recsModel, new RecsModel().toString())
             );
         }
     }
