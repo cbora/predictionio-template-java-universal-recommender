@@ -53,10 +53,8 @@ public class BiDictionaryJava {
         return new BiDictionaryJava(newBdict);
     }
 
-    public BiDictionaryJava inverse(){
-        Map<String, Object> map = new scala.collection.immutable.HashMap<>();
-        Option<BiMap<Object, String>> inversed = new Some(bdict.inverse());
-        return new BiDictionaryJava(new BiDictionary(map, inversed));
+    public BiMapJava inverse(){
+        return new BiMapJava(bdict.inverse());
     }
 
     public Object get(String key) {
@@ -91,9 +89,7 @@ public class BiDictionaryJava {
         return bdict.toString();
     }
 
-    public BiDictionaryJava take(int n) {
-        Map<String, Object> map = new scala.collection.immutable.HashMap<>();
-        Option<BiMap<Object, String>> temp = new Some(bdict.take(n));
-        return new BiDictionaryJava(new BiDictionary(map,temp));
+    public BiMapJava take(int n) {
+        return new BiMapJava(bdict.take(n));
     }
 }

@@ -28,7 +28,7 @@ public class Conversions {
      * @param logger Logger to print with
      */
     public static void drawActionML(Logger logger) {
-        String actionML = "" +
+        final String actionML = "" +
                 "\n\t" +
                 "\n\t               _   _             __  __ _" +
                 "\n\t     /\\       | | (_)           |  \\/  | |" +
@@ -49,19 +49,19 @@ public class Conversions {
      * @param logger Logger to use for printing
      */
     public static void drawInfo(String title, List<Tuple2<String, Object>> dataMap, Logger logger) {
-        String leftAlignFormat = "║ %-30s%-28s ║";
+        final String leftAlignFormat = "║ %-30s%-28s ║";
 
-        String line = strMul("═", 60);
+        final String line = strMul("═", 60);
 
-        String preparedTitle = String.format("║ %-58s ║", title);
+        final String preparedTitle = String.format("║ %-58s ║", title);
 
-        StringBuilder data = new StringBuilder();
+        final StringBuilder data = new StringBuilder();
         for (Tuple2<String, Object> t : dataMap) {
             data.append(String.format(leftAlignFormat, t._1, t._2));
             data.append("\n\t");
         }
 
-        String info = "" +
+        final  String info = "" +
                 "\n\t╔" + line + "╗" +
                 "\n\t"  + preparedTitle +
                 "\n\t"  + data.toString().trim() +
@@ -77,7 +77,7 @@ public class Conversions {
      * @return String created by combining n copies of str
      */
     private static String strMul(String str, int n) {
-        StringBuilder sb = new StringBuilder();
+        final StringBuilder sb = new StringBuilder();
         for (int i = 0; i < n; i++)
             sb.append(str);
         return sb.toString();
@@ -108,41 +108,40 @@ public class Conversions {
         }
 
 
-        public JavaPairRDD<String, java.util.HashMap<String,JsonAST.JValue>> toStringMapRDD(String actionName){
-            BiDictionaryJava rowIDDictionary = indexedDataset.getRowIds();
-            SparkDistributedContext temp = (SparkDistributedContext) indexedDataset.getMatrix().context();
-            SparkContext sc = temp.sc();
+        public JavaPairRDD<String, java.util.Map<String,JsonAST.JValue>> toStringMapRDD(final String actionName){
+            final BiDictionaryJava rowIDDictionary = indexedDataset.getRowIds();
+            final SparkDistributedContext temp = (SparkDistributedContext) indexedDataset.getMatrix().context();
+            final SparkContext sc = temp.sc();
 
-            ClassTag<BiDictionaryJava> tag = scala.reflect.ClassTag$.MODULE$.apply(BiDictionaryJava.class);
-            Broadcast<BiDictionaryJava> rowIDDictionary_bcast = sc.broadcast(rowIDDictionary,tag);
+            final ClassTag<BiDictionaryJava> tag = scala.reflect.ClassTag$.MODULE$.apply(BiDictionaryJava.class);
+            final Broadcast<BiDictionaryJava> rowIDDictionary_bcast = sc.broadcast(rowIDDictionary,tag);
 
-            BiDictionaryJava columnIDDictionary = indexedDataset.getColIds();
-            Broadcast<BiDictionaryJava> columnIDDictionary_bcast = sc.broadcast(columnIDDictionary,tag);
+            final BiDictionaryJava columnIDDictionary = indexedDataset.getColIds();
+            final Broadcast<BiDictionaryJava> columnIDDictionary_bcast = sc.broadcast(columnIDDictionary,tag);
 
             // may want to mapPartition and create bulk updates as a slight optimization
             // creates an RDD of (itemID, Map[correlatorName, list-of-correlator-values])
-            JavaRDD<Tuple2<Integer, Vector>> _to =
-                    ((CheckpointedDrmSpark) indexedDataset.getMatrix()).rddInput().asRowWise().toJavaRDD();
-            JavaPairRDD<Integer,Vector> to = JavaPairRDD.fromJavaRDD(_to);
+            final JavaRDD<Tuple2<Integer, Vector>> _to = ((CheckpointedDrmSpark) indexedDataset.getMatrix()).rddInput().asRowWise().toJavaRDD();
+            final JavaPairRDD<Integer,Vector> to = JavaPairRDD.fromJavaRDD(_to);
             return to.mapToPair(entry -> {
-                int rowNum = entry._1();
-                Vector itemVector = entry._2();
+                final int rowNum = entry._1();
+                final Vector itemVector = entry._2();
 
                 // turns non-zeros into list for sorting
-                List<Pair<Integer,Double>> itemList = new ArrayList<>();
+                final List<Pair<Integer,Double>> itemList = new ArrayList<>();
                 for(Vector.Element ve : itemVector.nonZeroes()) {
                     itemList.add(new Pair<Integer,Double>(ve.index(),ve.get()));
                 }
                 // sort by highest strength value descending(-)
-                Comparator<Pair<Integer,Double>> c =
+                final Comparator<Pair<Integer,Double>> c =
                         (ele1,ele2) -> (new Double (ele1.getValue().doubleValue() * -1.0))
                                 .compareTo(new Double(ele2.getValue().doubleValue() * -1.0));
                 itemList.sort(c);
-                List<Pair<Integer,Double>> vector = itemList;
+                final List<Pair<Integer,Double>> vector = itemList;
 
-                String invalid = "INVALID_ITEM_ID";
-                Object itemID = rowIDDictionary_bcast.value().inverse().getOrElse(rowNum,invalid);
-                String itemId = itemID.toString();
+                final String invalid = "INVALID_ITEM_ID";
+                final Object itemID = rowIDDictionary_bcast.value().inverse().getOrElse(rowNum,invalid);
+                final String itemId = itemID.toString();
                 try {
                     // equivalent to Predef.require
                     if(!itemId.equals("INVALID_ITEM_ID")){
@@ -155,18 +154,18 @@ public class Conversions {
                     }
 
                     // create a list of element ids
-                    JsonAST.JArray values = (JsonAST.JArray) (vector.stream().map(item ->
+                    final JsonAST.JArray values = (JsonAST.JArray) (vector.stream().map(item ->
                             (JsonAST.JString) columnIDDictionary_bcast.value().inverse()
                                     .getOrElse(item.getKey(),""))); // should always be in the dictionary
 
-                    java.util.HashMap<String,JsonAST.JValue> tmp = new HashMap<>();
+                    final java.util.Map<String,JsonAST.JValue> tmp = new HashMap<>();
                     tmp.put(actionName,values);
-                    //HashMap<String,JsonAST.JValue> rtn = JavaConverters.mapAsScalaMapConverter(tmp).asScala();
+                    //Map<String,JsonAST.JValue> rtn = JavaConverters.mapAsScalaMapConverter(tmp).asScala();
 
-                    return new Tuple2<String, java.util.HashMap<String,JsonAST.JValue>>
+                    return new Tuple2<String, java.util.Map<String,JsonAST.JValue>>
                             (itemId, tmp);
                 } catch(IllegalArgumentException e) {
-                    return new Tuple2<String, java.util.HashMap<String,JsonAST.JValue>> (null,null);
+                    return new Tuple2<String, java.util.Map<String,JsonAST.JValue>> (null,null);
                 }
 
             }).filter(ele -> ele != null);
