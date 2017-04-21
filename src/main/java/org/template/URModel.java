@@ -35,7 +35,7 @@ public class URModel {
      *  Elasticsearch's support. One exception is the Data scalar, which is also supported
      *  @return always returns true since most other reasons to not save cause exceptions
      */
-    public boolean save(List<String> dateNames, String esIndex, String esType) {
+    public boolean save(final List<String> dateNames, String esIndex, String esType) {
         logger.debug("Start save model");
 
         if (nullModel)
@@ -63,7 +63,26 @@ public class URModel {
         allRDDs.addAll(propertiesRDDs);
 
         final JavaPairRDD<String, Map<String,JsonAST.JValue>> groupedRDD = groupAll(allRDDs);
-        final JavaRDD<Map<String, Object>> esRDD = groupedRDD.mapPartitions(new EsRDDBuilder(dateNames));
+        final JavaRDD<Map<String, Object>> esRDD = groupedRDD.mapPartitions(iter ->
+                {
+                    final List<Map<String, Object>> result = new LinkedList<>();
+                    while(iter.hasNext()) {
+                        final Tuple2<String, Map<String, JsonAST.JValue>> t = iter.next();
+                        final String itemId = t._1();
+                        final Map<String, JsonAST.JValue> itemProps = t._2();
+                        final Map<String,Object> propsMap = new HashMap<>();
+
+                        for (Map.Entry<String, JsonAST.JValue> entry : itemProps.entrySet()) {
+                            final String propName = entry.getKey();
+                            final JsonAST.JValue propValue = entry.getValue();
+                            propsMap.put(propName, URModel.extractJvalue(dateNames, propName, propValue));
+                        }
+                        propsMap.put("id", itemId);
+                        result.add(propsMap);
+                    }
+                    return result;
+                }
+        );
         final List<String> esFields = esRDD.flatMap(Map::keySet).distinct().collect();
 
         logger.info("ES fields[" + esFields.size() + "]:" +  esFields);
@@ -104,36 +123,6 @@ public class URModel {
             return ((JsonAST.JBool) value).value();
         } else {
             return value;
-        }
-    }
-
-    private class EsRDDBuilder implements FlatMapFunction
-            <Iterator<Tuple2<String, Map<String, JsonAST.JValue>>>, Map<String, Object>> {
-
-        private final List<String> dateNames;
-
-        public EsRDDBuilder(List<String> dateNames) {
-            this.dateNames = dateNames;
-        }
-
-        @Override
-        public Iterable<Map<String, Object>> call(Iterator<Tuple2<String, Map<String, JsonAST.JValue>>> iter) {
-            final List<Map<String, Object>> result = new LinkedList<>();
-            while(iter.hasNext()) {
-                final Tuple2<String, Map<String, JsonAST.JValue>> t = iter.next();
-                final String itemId = t._1();
-                final Map<String, JsonAST.JValue> itemProps = t._2();
-                final Map<String,Object> propsMap = new HashMap<>();
-
-                for (Map.Entry<String, JsonAST.JValue> entry : itemProps.entrySet()) {
-                    final String propName = entry.getKey();
-                    final JsonAST.JValue propValue = entry.getValue();
-                    propsMap.put(propName, URModel.extractJvalue(dateNames, propName, propValue));
-                }
-                propsMap.put("id", itemId);
-                result.add(propsMap);
-            }
-            return result;
         }
     }
 }
