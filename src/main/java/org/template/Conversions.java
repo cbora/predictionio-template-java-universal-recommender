@@ -4,8 +4,10 @@ package org.template;
 import javafx.util.Pair;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.sparkbindings.SparkDistributedContext;
+import org.apache.mahout.sparkbindings.drm.CheckpointedDrmSpark;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.broadcast.Broadcast;
 import org.json4s.JsonAST;
 import org.slf4j.Logger;
@@ -119,7 +121,8 @@ public class Conversions {
 
             // may want to mapPartition and create bulk updates as a slight optimization
             // creates an RDD of (itemID, Map[correlatorName, list-of-correlator-values])
-            JavaPairRDD<Integer,Vector> to = (JavaPairRDD<Integer,Vector>) indexedDataset.getMatrix();
+            JavaRDD<Tuple2<Integer, Vector>> _to = ((CheckpointedDrmSpark) indexedDataset.getMatrix()).rddInput().asRowWise().toJavaRDD();
+            JavaPairRDD<Integer,Vector> to = JavaPairRDD.fromJavaRDD(_to);
             return to.mapToPair(entry -> {
                 int rowNum = entry._1();
                 Vector itemVector = entry._2();
