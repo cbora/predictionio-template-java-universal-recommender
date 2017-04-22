@@ -1,7 +1,11 @@
 package org.template;
 
+import com.google.common.collect.Iterables;
 import lombok.AllArgsConstructor;
+import org.apache.mahout.math.*;
+import org.apache.mahout.math.drm.CheckpointedDrm;
 import org.apache.mahout.math.indexeddataset.IndexedDataset;
+import org.apache.mahout.sparkbindings.drm.CheckpointedDrmSparkOps;
 import org.apache.mahout.sparkbindings.indexeddataset.IndexedDatasetSpark;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -13,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.template.indexeddataset.IndexedDatasetJava;
 import scala.Tuple2;
+import scala.collection.JavaConverters;
 
 import java.util.*;
 
@@ -47,11 +52,54 @@ public class URModel {
         logger.info("Converting cooccurrence matrices into correlators");
 
         final List<JavaPairRDD<String, HashMap<String,JsonAST.JValue>>> correlatorRDDs = new LinkedList<>();
+
         for (Tuple2<String,IndexedDataset> t : this.coocurrenceMatrices) {
             final String actionName = t._1();
             final IndexedDataset dataset = t._2();
+
+
+            /** Chris Fifty sanity check */
+            /**
+             * Size of teh vector: 5,5,0,5,6,2,4 and RDD size = 7...
+
+
+                CheckpointedDrm temp = dataset.matrix();
+                CheckpointedDrmSparkOps temp2 = new CheckpointedDrmSparkOps(temp);
+                JavaPairRDD<Integer, org.apache.mahout.math.Vector> temp3 = JavaPairRDD.fromJavaRDD(temp2.rdd().toJavaRDD());
+                System.out.println("here is the RDD size " + temp3.rdd().count());
+                temp3.foreach(entry -> {
+
+                    System.out.println("here is the size of the vector.nonZeros " + Iterables.size(entry._2().nonZeroes()));
+
+                });
+                if(!nullModel) {
+                    throw new IllegalStateException("MUST SEE THIS");
+                }
+
+            */
+            /** end chris fifty sanity check */
+
             final IndexedDatasetSpark IDSpark = (IndexedDatasetSpark) dataset;
             final IndexedDatasetJava IDJava = new IndexedDatasetJava(IDSpark);
+
+            /** Chris Fifty sanity check #2 */
+            /**
+             * size of the vector: 5,4,0,4,5,2,4 and size of the RDD = 7
+
+            CheckpointedDrm temp = IDJava.matrix();
+            CheckpointedDrmSparkOps temp2 = new CheckpointedDrmSparkOps(temp);
+            JavaPairRDD<Integer, org.apache.mahout.math.Vector> temp3 = JavaPairRDD.fromJavaRDD(temp2.rdd().toJavaRDD());
+            System.out.println("here is the RDD size " + temp3.rdd().count());
+            temp3.foreach(entry -> {
+
+                System.out.println("here is the size of the vector.nonZeros " + Iterables.size(entry._2().nonZeroes()));
+
+            });
+            if(!nullModel) {
+                throw new IllegalStateException("MUST SEE THIS");
+            }
+             */
+            /** End chris fifty sanity check 2 */
             final Conversions.IndexedDatasetConversions IDConvert = new Conversions.IndexedDatasetConversions(IDJava);
             correlatorRDDs.add(IDConvert.toStringMapRDD(actionName));
         }
@@ -83,6 +131,9 @@ public class URModel {
                     return result;
                 }
         );
+        if(esRDD == null) {
+            throw new IllegalStateException("esRDD is null and this is a big problem");
+        }
         final List<String> esFields = esRDD.flatMap(Map::keySet).distinct().collect();
 
         logger.info("ES fields[" + esFields.size() + "]:" +  esFields);
@@ -92,25 +143,22 @@ public class URModel {
     }
     private JavaPairRDD<String, HashMap<String,JsonAST.JValue>> groupAll(
             List<JavaPairRDD<String, HashMap<String,JsonAST.JValue>>> fields) {
-        JavaPairRDD<String, HashMap<String,JsonAST.JValue>> tmp = RDDUtils.unionAllPair(fields, sc);
-        JavaPairRDD<String,Map<String,JsonAST.JValue>> tmp2 = tmp.mapToPair(entry ->
-                new Tuple2<String,Map<String,JsonAST.JValue>>(entry._1(),new HashMap<>(entry._2()))
-        );
-        JavaPairRDD<String,Map<String,JsonAST.JValue>> rtn = RDDUtils.combineMapByKey(tmp2);
-        JavaPairRDD<String,HashMap<String,JsonAST.JValue>> rtn2 = rtn.mapToPair(entry ->
-                new Tuple2<String,HashMap<String,JsonAST.JValue>>(entry._1(),new HashMap<> (entry._2())));
-        return rtn2;
+        final JavaPairRDD<String,HashMap<String,JsonAST.JValue>> tmp = RDDUtils.unionAllPair(fields,sc);
+        return RDDUtils.combineHashMapByKey(tmp);
     }
 
     private static Object extractJvalue(List<String> dateNames, String key, JsonAST.JValue value) {
         if (value instanceof JsonAST.JArray) {
+
             final List<Object> list = new LinkedList<>();
-            final scala.collection.Iterator iter = ((JsonAST.JArray) value).values().iterator();
-
-            while (iter.hasNext())
-                list.add(extractJvalue(dateNames, key, (JsonAST.JValue) iter.next()));
-
+            JsonAST.JArray temp = (JsonAST.JArray) value;
+            int counter = 0;
+            while(counter < temp.values().size()){
+                list.add(extractJvalue(dateNames,key,temp.apply(counter)));
+                counter++;
+            }
             return list;
+
         } else if (value instanceof JsonAST.JString) {
             final String s = ((JsonAST.JString) value).s();
 

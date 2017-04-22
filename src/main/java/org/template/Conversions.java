@@ -1,10 +1,17 @@
 package org.template;
 
 
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Iterators;
 import javafx.util.Pair;
+import org.apache.avro.data.Json;
 import org.apache.mahout.math.Vector;
+import org.apache.mahout.math.drm.CheckpointedDrm;
 import org.apache.mahout.sparkbindings.SparkDistributedContext;
+import org.apache.mahout.sparkbindings.blas.DrmRddOps;
 import org.apache.mahout.sparkbindings.drm.CheckpointedDrmSpark;
+import org.apache.mahout.sparkbindings.drm.CheckpointedDrmSparkOps;
+import org.apache.mahout.sparkbindings.drm.DrmRddInput;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -15,9 +22,13 @@ import org.slf4j.LoggerFactory;
 import org.template.indexeddataset.BiDictionaryJava;
 import org.template.indexeddataset.IndexedDatasetJava;
 import scala.Tuple2;
+import scala.collection.JavaConverters;
+import scala.collection.immutable.*;
 import scala.reflect.ClassTag;
 
 import java.util.*;
+import java.util.HashMap;
+import java.util.List;
 
 
 /** Utility conversions for IndexedDatasetSpark */
@@ -110,60 +121,64 @@ public class Conversions {
 
         public JavaPairRDD<String, java.util.HashMap<String,JsonAST.JValue>> toStringMapRDD(final String actionName){
             final BiDictionaryJava rowIDDictionary = indexedDataset.getRowIds();
-            final SparkDistributedContext temp = (SparkDistributedContext) indexedDataset.getMatrix().context();
-            final SparkContext sc = temp.sc();
-
+            final SparkContext sc = ((SparkDistributedContext) indexedDataset.getMatrix().context()).sc();
             final ClassTag<BiDictionaryJava> tag = scala.reflect.ClassTag$.MODULE$.apply(BiDictionaryJava.class);
             final Broadcast<BiDictionaryJava> rowIDDictionary_bcast = sc.broadcast(rowIDDictionary,tag);
 
             final BiDictionaryJava columnIDDictionary = indexedDataset.getColIds();
             final Broadcast<BiDictionaryJava> columnIDDictionary_bcast = sc.broadcast(columnIDDictionary,tag);
 
-            // may want to mapPartition and create bulk updates as a slight optimization
-            // creates an RDD of (itemID, Map[correlatorName, list-of-correlator-values])
-            final JavaRDD<Tuple2<Integer, Vector>> _to = ((CheckpointedDrmSpark) indexedDataset.getMatrix()).rddInput().asRowWise().toJavaRDD();
-            final JavaPairRDD<Integer,Vector> to = JavaPairRDD.fromJavaRDD(_to);
-            return to.mapToPair(entry -> {
-                final int rowNum = entry._1();
+            CheckpointedDrm<Object> temp = indexedDataset.matrix();
+            CheckpointedDrmSparkOps<Object> temp2 = new CheckpointedDrmSparkOps<Object>(temp);
+            JavaPairRDD<Object,Vector> temp3 = JavaPairRDD.fromJavaRDD(temp2.rdd().toJavaRDD());
+
+            return temp3.mapToPair(entry -> {
+                final int rowNum = (Integer) entry._1();
                 final Vector itemVector = entry._2();
 
                 // turns non-zeros into list for sorting
-                final List<Pair<Integer,Double>> itemList = new ArrayList<>();
+                List<Tuple2<Integer,Double>> itemList = new ArrayList<>();
                 for(Vector.Element ve : itemVector.nonZeroes()) {
-                    itemList.add(new Pair<Integer,Double>(ve.index(),ve.get()));
+                    itemList.add(new Tuple2<>(ve.index(),ve.get()));
                 }
+
                 // sort by highest strength value descending(-)
-                final Comparator<Pair<Integer,Double>> c =
-                        (ele1,ele2) -> (new Double (ele1.getValue().doubleValue() * -1.0))
-                                .compareTo(new Double(ele2.getValue().doubleValue() * -1.0));
+                Comparator<Tuple2<Integer,Double>> c =
+                        (ele1,ele2) -> (new Double (ele1._1().doubleValue() * -1.0))
+                                .compareTo(new Double(ele2._2().doubleValue() * -1.0));
                 itemList.sort(c);
-                final List<Pair<Integer,Double>> vector = itemList;
+                List<Tuple2<Integer,Double>> vector = itemList;
 
                 final String invalid = "INVALID_ITEM_ID";
                 final Object itemID = rowIDDictionary_bcast.value().inverse().getOrElse(rowNum,invalid);
                 final String itemId = itemID.toString();
                 try {
                     // equivalent to Predef.require
-                    if(!itemId.equals("INVALID_ITEM_ID")){
+                    if(itemId.equals(invalid)){
                         throw new IllegalArgumentException("Bad row number in  matrix, skipping item "+ rowNum);
                     }
 
                     // equivalent to Predef.require #2
-                    if(!vector.isEmpty()) {
+                    if(vector.isEmpty()) {
                         throw new IllegalArgumentException("No values so skipping item " + rowNum);
                     }
 
                     // create a list of element ids
-                    final JsonAST.JArray values = (JsonAST.JArray) (vector.stream().map(item ->
-                            (JsonAST.JString) columnIDDictionary_bcast.value().inverse()
-                                    .getOrElse(item.getKey(),""))); // should always be in the dictionary
+                    List<JsonAST.JValue> holderList = new ArrayList<>();
+                    for(Tuple2<Integer,Double> element : vector) {
+                        holderList.add(new JsonAST.JString(columnIDDictionary_bcast.value().inverse().
+                                getOrElse(element._1(),"").toString()));
+                    }
 
-                    final java.util.HashMap<String,JsonAST.JValue> tmp = new HashMap<>();
-                    tmp.put(actionName,values);
-                    //HashMap<String,JsonAST.JValue> rtn = JavaConverters.mapAsScalaMapConverter(tmp).asScala();
 
-                    return new Tuple2<String, java.util.HashMap<String,JsonAST.JValue>>
-                            (itemId, tmp);
+                    scala.collection.immutable.List<JsonAST.JValue> tmp7 =
+                            JavaConverters.asScalaBufferConverter(holderList).asScala().toList();
+                    JsonAST.JArray values = new JsonAST.JArray(tmp7);
+
+                    HashMap<String,JsonAST.JValue> rtnMap = new HashMap<>();
+                    rtnMap.put(actionName,values);
+                    return new Tuple2<>(itemId,rtnMap);
+
                 } catch(IllegalArgumentException e) {
                     return new Tuple2<String, java.util.HashMap<String,JsonAST.JValue>> (null,null);
                 }
