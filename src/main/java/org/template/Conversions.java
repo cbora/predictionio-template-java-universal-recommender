@@ -180,7 +180,7 @@ public class Conversions {
                     return new Tuple2<>(itemId,rtnMap);
 
                 } catch(IllegalArgumentException e) {
-                    return new Tuple2<String, java.util.HashMap<String,JsonAST.JValue>> (null,null);
+                    return null; //new Tuple2<String, java.util.HashMap<String,JsonAST.JValue>> (null,null);
                 }
 
             }).filter(ele -> ele != null);
