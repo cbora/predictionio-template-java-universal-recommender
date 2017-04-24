@@ -131,7 +131,7 @@ public final class EsClient {
                     "}";
             mappings.append(mappingsTail); // any other string is not_analyzed
 
-            final CreateIndexRequest cir = new CreateIndexRequest(indexName).mapping(indexType, mappings);
+            final CreateIndexRequest cir = new CreateIndexRequest(indexName).mapping(indexType, mappings.toString());
             final CreateIndexResponse create = client.admin().indices().create(cir).actionGet();
             if (!create.isAcknowledged()) {
                 logger.info("Index " + indexName + " wasn't created, but may have quietly failed.");
