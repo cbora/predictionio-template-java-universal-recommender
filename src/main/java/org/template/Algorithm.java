@@ -380,4 +380,78 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         List<String> queryEventNames = query.getEventNamesOrElse(modelEventNames);
         throw new RuntimeException("Not yet implemented");
     }
+    /** Build sort query part */
+    private List<JsonElement> buildQuerySort(){
+        List<JsonElement> Seq = new ArrayList <JsonElement>();
+        if (recsModel == RecsModel.All || recsModel == RecsModel.BF){
+            Gson gson = new Gson();
+            List <JsonElement> sortByScore = new ArrayList <JsonElement>();
+            List <JsonElement> sortByRanks = new ArrayList <JsonElement>();
+            sortByScore.add(new JsonParser().parse("{\"_score\": {\"order\": \"desc\"}}"));
+            for(String fieldName:rankingFieldNames){
+                sortByRanks.add(new JsonParser().parse("{ \"$fieldName\": { \"unmapped_type\": \"double\", \"order\": \"desc\" } }"));
+            }
+            sortByScore.addAll(sortByRanks);
+            return sortByScore;
+        }
+        else{
+            return Seq;
+        }
+    }
+    
+    /** Build not must query part */
+    private List<JsonElement> buildQueryMustNot(Query query, List<Event> events){
+        List<JsonElement> mustNotFields = new ArrayList <JsonElement>();
+        Gson gson = new Gson();
+        JsonObject obj = new JsonObject();
+        JsonObject innerObj = new JsonObject();
+        
+        innerObj.addProperty("values", gson.toJson(getExcludedItems(events,query)));
+        obj.add("ids",innerObj);
+        obj.addProperty("boost", 0);
+        mustNotFields.add(obj);
+        
+        return mustNotFields;
+    }
+    
+    /** Create a list of item ids that the user has interacted with or are not to be included in recommendations */
+    private List<String> getExcludedItems(List<Event> events, Query query) {
+        List<Event> blacklistedItems = new ArrayList<Event>();
+        List<String> blacklistedStrings = new ArrayList<String>();
+        // either a list or an empty list of filtering events so honor them
+        for (Event event : events) {
+            if (blackListEvents.isEmpty()) {
+                if (event.equals(modelEventNames.get(0))) {
+                    blacklistedItems.add(event);
+                }
+            } else if (blackListEvents.contains(event)) {
+                blacklistedItems.add(event);
+            }
+        }
+        for (Event event : blacklistedItems) {
+            if (event.targetEntityId().get() != null) {
+                blacklistedStrings.add(event.targetEntityId().get());
+            } else {
+                blacklistedStrings.add("");
+            }
+        }
+        blacklistedStrings.addAll(query.getBlacklistItems().stream().distinct().collect(toList()));
+        // Now conditionally add the query item itself
+        Boolean includeSelf;
+        if (query.getReturnSelf() != null) {
+            includeSelf = query.getReturnSelf();
+        } else {
+            includeSelf = returnSelf;
+        }
+        List<String> allExcludedItems = new ArrayList<String>();
+        if (!includeSelf && (query.getItem() != null)) {
+            blacklistedStrings.add(query.getItem());
+            allExcludedItems.addAll(blacklistedStrings);
+        } else {
+            allExcludedItems.addAll(blacklistedStrings);
+        }
+        List<String> allExcludedStrings = new ArrayList<String>();
+        allExcludedStrings.addAll(allExcludedItems.stream().distinct().collect(toList()));
+        return allExcludedStrings;
+    }
 }
