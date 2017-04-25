@@ -28,10 +28,7 @@ import org.template.indexeddataset.IndexedDatasetJava;
 import scala.Tuple2;
 import scala.collection.JavaConverters;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 public class Preparator extends PJavaPreparator<TrainingData, PreparedData> {
 
@@ -81,9 +78,11 @@ public class Preparator extends PJavaPreparator<TrainingData, PreparedData> {
         }
 
         JavaPairRDD<String, Map<String,JsonAST.JValue>>fieldsRDD =
-                trainingData.getFieldsRDD().mapToPair(entry -> new Tuple2<>(
-                        entry._1(), JavaConverters.mapAsJavaMapConverter(entry._2().fields()).asJava()));
+                trainingData.getFieldsRDD().mapToPair(entry -> new Tuple2<>(entry._1(),
+                        JavaConverters.mapAsJavaMapConverter(entry._2().fields()).asJava()));
+        JavaPairRDD<String,HashMap<String,JsonAST.JValue>> fields2 = fieldsRDD.mapToPair(entry ->
+                        new Tuple2<>(entry._1(),new HashMap<>(entry._2())));
 
-        return new PreparedData(rowAdjustedIds, fieldsRDD);
+        return new PreparedData(rowAdjustedIds, fields2);
     }
 }

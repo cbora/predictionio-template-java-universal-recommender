@@ -4,8 +4,10 @@ package org.template;
 import javafx.util.Pair;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.sparkbindings.SparkDistributedContext;
+import org.apache.mahout.sparkbindings.drm.CheckpointedDrmSpark;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.broadcast.Broadcast;
 import org.json4s.JsonAST;
 import org.slf4j.Logger;
@@ -106,7 +108,7 @@ public class Conversions {
         }
 
 
-        public JavaPairRDD<String, java.util.Map<String,JsonAST.JValue>> toStringMapRDD(String actionName){
+        public JavaPairRDD<String, java.util.HashMap<String,JsonAST.JValue>> toStringMapRDD(String actionName){
             BiDictionaryJava rowIDDictionary = indexedDataset.getRowIds();
             SparkDistributedContext temp = (SparkDistributedContext) indexedDataset.getMatrix().context();
             SparkContext sc = temp.sc();
@@ -119,7 +121,9 @@ public class Conversions {
 
             // may want to mapPartition and create bulk updates as a slight optimization
             // creates an RDD of (itemID, Map[correlatorName, list-of-correlator-values])
-            JavaPairRDD<Integer,Vector> to = (JavaPairRDD<Integer,Vector>) indexedDataset.getMatrix();
+            JavaRDD<Tuple2<Integer, Vector>> _to =
+                    ((CheckpointedDrmSpark) indexedDataset.getMatrix()).rddInput().asRowWise().toJavaRDD();
+            JavaPairRDD<Integer,Vector> to = JavaPairRDD.fromJavaRDD(_to);
             return to.mapToPair(entry -> {
                 int rowNum = entry._1();
                 Vector itemVector = entry._2();
@@ -155,14 +159,14 @@ public class Conversions {
                             (JsonAST.JString) columnIDDictionary_bcast.value().inverse()
                                     .getOrElse(item.getKey(),""))); // should always be in the dictionary
 
-                    java.util.Map<String,JsonAST.JValue> tmp = new HashMap<>();
+                    java.util.HashMap<String,JsonAST.JValue> tmp = new HashMap<>();
                     tmp.put(actionName,values);
-                    //Map<String,JsonAST.JValue> rtn = JavaConverters.mapAsScalaMapConverter(tmp).asScala();
+                    //HashMap<String,JsonAST.JValue> rtn = JavaConverters.mapAsScalaMapConverter(tmp).asScala();
 
-                    return new Tuple2<String, java.util.Map<String,JsonAST.JValue>>
+                    return new Tuple2<String, java.util.HashMap<String,JsonAST.JValue>>
                             (itemId, tmp);
                 } catch(IllegalArgumentException e) {
-                    return new Tuple2<String, java.util.Map<String,JsonAST.JValue>> (null,null);
+                    return new Tuple2<String, java.util.HashMap<String,JsonAST.JValue>> (null,null);
                 }
 
             }).filter(ele -> ele != null);
