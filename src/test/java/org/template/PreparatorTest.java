@@ -26,7 +26,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.sun.xml.internal.ws.dump.LoggingDumpTube.Position.After;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
