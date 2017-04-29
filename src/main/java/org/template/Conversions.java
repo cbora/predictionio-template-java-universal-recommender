@@ -1,20 +1,12 @@
 package org.template;
 
 
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import javafx.util.Pair;
-import org.apache.avro.data.Json;
 import org.apache.mahout.math.Vector;
 import org.apache.mahout.math.drm.CheckpointedDrm;
 import org.apache.mahout.sparkbindings.SparkDistributedContext;
-import org.apache.mahout.sparkbindings.blas.DrmRddOps;
-import org.apache.mahout.sparkbindings.drm.CheckpointedDrmSpark;
 import org.apache.mahout.sparkbindings.drm.CheckpointedDrmSparkOps;
-import org.apache.mahout.sparkbindings.drm.DrmRddInput;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.broadcast.Broadcast;
 import org.json4s.JsonAST;
 import org.slf4j.Logger;
@@ -23,12 +15,9 @@ import org.template.indexeddataset.BiDictionaryJava;
 import org.template.indexeddataset.IndexedDatasetJava;
 import scala.Tuple2;
 import scala.collection.JavaConverters;
-import scala.collection.immutable.*;
 import scala.reflect.ClassTag;
 
 import java.util.*;
-import java.util.HashMap;
-import java.util.List;
 
 
 /** Utility conversions for IndexedDatasetSpark */
@@ -180,7 +169,7 @@ public class Conversions {
                     return new Tuple2<>(itemId,rtnMap);
 
                 } catch(IllegalArgumentException e) {
-                    return null; //new Tuple2<String, java.util.HashMap<String,JsonAST.JValue>> (null,null);
+                    return null;
                 }
 
             }).filter(ele -> ele != null);
