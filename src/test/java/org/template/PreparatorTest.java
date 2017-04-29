@@ -8,6 +8,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.joda.time.DateTime;
 import org.json4s.JsonAST;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.template.indexeddataset.IndexedDatasetJava;
@@ -25,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.sun.xml.internal.ws.dump.LoggingDumpTube.Position.After;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -93,6 +95,11 @@ public class PreparatorTest {
 
         // create the PreparedData
         PD = myPreparator.prepare(sc,trainingData);
+    }
+
+    @After
+    public void tearDown() {
+        sc.stop();
     }
 
     @Test
