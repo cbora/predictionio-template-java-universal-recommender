@@ -264,7 +264,7 @@ public final class EsClient {
     }
 
 
-    public JavaPairRDD<String, Map<String, JsonAST.JValue>> getRDD(String alias, String typeName, SparkContext sc) {
+    public JavaPairRDD<String, HashMap<String, JsonAST.JValue>> getRDD(String alias, String typeName, SparkContext sc) {
         final String indexName = getIndexName(alias);
         if (indexName == null || indexName.equals("")) {
             return null;
@@ -274,10 +274,10 @@ public final class EsClient {
             final JavaPairRDD<String,String> esrdd = JavaPairRDD.fromJavaRDD(tmp);
 
             return esrdd.mapToPair(t ->
-                    new Tuple2<String, Map<String, JsonAST.JValue>> (t._1(),
+                    new Tuple2<String, HashMap<String, JsonAST.JValue>> (t._1(), new HashMap<>(
                             JavaConverters.mapAsJavaMapConverter(
                                     DataMap.apply(t._2())
-                                            .fields()).asJava()));
+                                            .fields()).asJava())));
         }
     }
 }
