@@ -47,7 +47,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
   private final Integer randomSeed;
   private final Integer maxCorrelatorsPerEventType;
   private final Integer maxEventsPerEventType;
-  private final List<String> modelEventNames;
+  private final List<String> modelEventNames = new ArrayList<String>();
   private final List<RankingParams> rankingParams;
   private final List<String> rankingFieldNames;
   private final List<String> dateNames;
@@ -72,19 +72,31 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
     this.userBias = ap.getUserBiasOrElse(1f);
     this.itemBias = ap.getItemBiasOrElse(1f);
     this.maxQueryEvents = ap.getMaxQueryEventsOrElse(
-        DefaultURAlgorithmParams.DefaultMaxQueryEvents);
+            DefaultURAlgorithmParams.DefaultMaxQueryEvents);
     this.limit = ap.getNumOrElse(DefaultURAlgorithmParams.DefaultNum);
     this.blackListEvents = ap.getBlacklistEvents();
     this.returnSelf = ap.getReturnSelfOrElse(DefaultURAlgorithmParams.DefaultReturnSelf);
     this.fields = ap.getFields();
     this.randomSeed = ap.getSeedOrElse(System.currentTimeMillis()).intValue();
     this.maxCorrelatorsPerEventType = ap.getMaxCorrelatorsPerEventTypeOrElse(
-        DefaultURAlgorithmParams.DefaultMaxCorrelatorsPerEventType
+            DefaultURAlgorithmParams.DefaultMaxCorrelatorsPerEventType
     );
     this.maxEventsPerEventType = ap.getMaxEventsPerEventTypeOrElse(
-        DefaultURAlgorithmParams.DefaultMaxEventsPerEventType
+            DefaultURAlgorithmParams.DefaultMaxEventsPerEventType
     );
-    this.modelEventNames = ap.getModelEventNames();
+    if (ap.getIndicators() == null) {
+        if (ap.getEventNames() != null) {
+          throw new IllegalArgumentException("No eventNames or indicators in engine.json and one of these is required");
+        }
+        else {
+          this.modelEventNames.addAll(ap.getEventNames());
+        }
+    }
+    else {
+       for (IndicatorParams ip : ap.getIndicators()){
+            this.modelEventNames.add(ip.getName());
+        }
+    }
 
     List<RankingParams> defaultRankingParams = new ArrayList<>(Arrays.asList(
         new RankingParams(
@@ -190,6 +202,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
     for (Tuple2<String, IndexedDatasetJava> p : preparedData.getActions()) {
       iDs.add(p._2());
     }
+
 
     if (ap.getIndicators().size() == 0) {
       cooccurrenceIDS = SimilarityAnalysisJava.cooccurrencesIDSs(
@@ -703,7 +716,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
       int numRecs = query.getNumOrElse(DefaultURAlgorithmParams.DefaultNum);
       List<JsonElement> should = buildQueryShould(query, boostableEvents._1());
       List<JsonElement> must = buildQueryMust(query, boostableEvents._1());
-      List<JsonElement> mustNot = buildQueryMustNot(query, boostableEvents._2());
+      JsonElement mustNot = buildQueryMustNot(query, boostableEvents._2());
       List<JsonElement> sort = buildQuerySort();
 
       JsonObject jsonQuery = new JsonObject(); // Outer most
@@ -726,9 +739,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
       if (must != null) must.forEach(mustJsonArray::add);
       innerMostObject.add("must", mustJsonArray);
 
-      JsonArray mustNotJsonArray = new JsonArray();
-      if (mustNot != null) mustNot.forEach(mustNotJsonArray::add);
-      innerMostObject.add("must_not", mustNotJsonArray);
+      innerMostObject.add("must_not", mustNot);
 
       innerMostObject.addProperty("minimum_should_match", 1);
 
@@ -850,29 +861,91 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
       obj.addProperty("boost", bc.boost);
       shouldFields.add(obj);
     }
-
-    String shouldScore =
-        "{\n" +
-            "   \"constant_score\": {\n" +
-            "  \"filter\": {\n" +
-            "  \"match_all\": {}\n" +
-            "},\n" +
-            "  \"boost\": 0\n" +
-            "  }\n" +
-            "}";
-    shouldFields.add(
-        new JsonParser().parse(shouldScore).getAsJsonObject()
-    );
-
-    return shouldFields;
+      
+      String shouldScore =
+      "{\n" +
+      "   \"constant_score\": {\n" +
+      "  \"filter\": {\n" +
+      "  \"match_all\": {}\n" +
+      "},\n" +
+      "  \"boost\": 0\n" +
+      "  }\n" +
+      "}";
+      shouldFields.add(
+                       new JsonParser().parse(shouldScore).getAsJsonObject()
+                       );
+      
+      return shouldFields;
   }
 
-  private List<JsonElement> buildQueryMustNot(Query query, List<Event> boostable) {
-    return null;
-  }
+    /** Build sort query part */
+    private List<JsonElement> buildQuerySort(){
+        if (recsModel == RecsModel.All || recsModel == RecsModel.BF){
+            Gson gson = new Gson();
+            List <JsonElement> sortByScore = new ArrayList <JsonElement>();
+            List <JsonElement> sortByRanks = new ArrayList <JsonElement>();
+            sortByScore.add(new JsonParser().parse("{\"_score\": {\"order\": \"desc\"}}"));
+            for(String fieldName:rankingFieldNames){
+                sortByRanks.add(new JsonParser().parse("{ \" "+ fieldName + "\": { \"unmapped_type\": \"double\", \"order\": \"desc\" } }"));
+            }
+            sortByScore.addAll(sortByRanks);
+            return sortByScore;
+        }
+        else{
 
-  private List<JsonElement> buildQuerySort() {
-    return null;
-  }
+            return new ArrayList <JsonElement>();
+        }
+    }
+    
+    /** Build not must query part */
+    private JsonElement buildQueryMustNot(Query query, List<Event> events){
+        Gson gson = new Gson();
+        JsonObject obj = new JsonObject();
+        JsonObject innerObj = new JsonObject();
+        
+        innerObj.addProperty("values", gson.toJson(getExcludedItems(events,query)));
+        obj.add("ids",innerObj);
+        obj.addProperty("boost", 0);
 
+        return obj;
+    }
+    
+    /** Create a list of item ids that the user has interacted with or are not to be included in recommendations */
+    private List<String> getExcludedItems(List<Event> events, Query query) {
+        List<Event> blacklistedItems = new ArrayList<Event>();
+        List<String> blacklistedStrings = new ArrayList<String>();
+        // either a list or an empty list of filtering events so honor them
+        for (Event event : events) {
+            if (blackListEvents.isEmpty()) {
+                if (event.equals(modelEventNames.get(0))) {
+                    blacklistedItems.add(event);
+                }
+            } else if (blackListEvents.contains(event)) {
+                blacklistedItems.add(event);
+            }
+        }
+        for (Event event : blacklistedItems) {
+            if (event.targetEntityId().get() != null) {
+                blacklistedStrings.add(event.targetEntityId().get());
+            } else {
+                blacklistedStrings.add("");
+            }
+        }
+        blacklistedStrings.addAll(query.getBlacklistItems().stream().distinct().collect(toList()));
+        // Now conditionally add the query item itself
+        Boolean includeSelf;
+        if (query.getReturnSelf() != null) {
+            includeSelf = query.getReturnSelf();
+        } else {
+            includeSelf = returnSelf;
+        }
+
+        if (!includeSelf && (query.getItem() != null)) {
+          blacklistedStrings.add(query.getItem());
+        }
+
+        List<String> allExcludedStrings = new ArrayList<String>();
+        allExcludedStrings.addAll(blacklistedStrings.stream().distinct().collect(toList()));
+        return allExcludedStrings;
+    }
 }
