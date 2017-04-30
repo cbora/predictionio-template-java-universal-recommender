@@ -716,7 +716,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
       int numRecs = query.getNumOrElse(DefaultURAlgorithmParams.DefaultNum);
       List<JsonElement> should = buildQueryShould(query, boostableEvents._1());
       List<JsonElement> must = buildQueryMust(query, boostableEvents._1());
-      List<JsonElement> mustNot = buildQueryMustNot(query, boostableEvents._2());
+      JsonElement mustNot = buildQueryMustNot(query, boostableEvents._2());
       List<JsonElement> sort = buildQuerySort();
 
       JsonObject jsonQuery = new JsonObject(); // Outer most
@@ -739,9 +739,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
       if (must != null) must.forEach(mustJsonArray::add);
       innerMostObject.add("must", mustJsonArray);
 
-      JsonArray mustNotJsonArray = new JsonArray();
-      if (mustNot != null) mustNot.forEach(mustNotJsonArray::add);
-      innerMostObject.add("must_not", mustNotJsonArray);
+      innerMostObject.add("must_not", mustNot);
 
       innerMostObject.addProperty("minimum_should_match", 1);
 
@@ -900,8 +898,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
     }
     
     /** Build not must query part */
-    private List<JsonElement> buildQueryMustNot(Query query, List<Event> events){
-        List<JsonElement> mustNotFields = new ArrayList <JsonElement>();
+    private JsonElement buildQueryMustNot(Query query, List<Event> events){
         Gson gson = new Gson();
         JsonObject obj = new JsonObject();
         JsonObject innerObj = new JsonObject();
@@ -909,9 +906,8 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         innerObj.addProperty("values", gson.toJson(getExcludedItems(events,query)));
         obj.add("ids",innerObj);
         obj.addProperty("boost", 0);
-        mustNotFields.add(obj);
-        
-        return mustNotFields;
+
+        return obj;
     }
     
     /** Create a list of item ids that the user has interacted with or are not to be included in recommendations */
@@ -943,15 +939,13 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         } else {
             includeSelf = returnSelf;
         }
-        List<String> allExcludedItems = new ArrayList<String>();
+
         if (!includeSelf && (query.getItem() != null)) {
-            blacklistedStrings.add(query.getItem());
-            allExcludedItems.addAll(blacklistedStrings);
-        } else {
-            allExcludedItems.addAll(blacklistedStrings);
+          blacklistedStrings.add(query.getItem());
         }
+
         List<String> allExcludedStrings = new ArrayList<String>();
-        allExcludedStrings.addAll(allExcludedItems.stream().distinct().collect(toList()));
+        allExcludedStrings.addAll(blacklistedStrings.stream().distinct().collect(toList()));
         return allExcludedStrings;
     }
 }
