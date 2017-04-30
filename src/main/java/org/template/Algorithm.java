@@ -47,7 +47,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
   private final Integer randomSeed;
   private final Integer maxCorrelatorsPerEventType;
   private final Integer maxEventsPerEventType;
-  private final List<String> modelEventNames;
+  private final List<String> modelEventNames = new ArrayList<String>();
   private final List<RankingParams> rankingParams;
   private final List<String> rankingFieldNames;
   private final List<String> dateNames;
@@ -72,19 +72,31 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
     this.userBias = ap.getUserBiasOrElse(1f);
     this.itemBias = ap.getItemBiasOrElse(1f);
     this.maxQueryEvents = ap.getMaxQueryEventsOrElse(
-        DefaultURAlgorithmParams.DefaultMaxQueryEvents);
+            DefaultURAlgorithmParams.DefaultMaxQueryEvents);
     this.limit = ap.getNumOrElse(DefaultURAlgorithmParams.DefaultNum);
     this.blackListEvents = ap.getBlacklistEvents();
     this.returnSelf = ap.getReturnSelfOrElse(DefaultURAlgorithmParams.DefaultReturnSelf);
     this.fields = ap.getFields();
     this.randomSeed = ap.getSeedOrElse(System.currentTimeMillis()).intValue();
     this.maxCorrelatorsPerEventType = ap.getMaxCorrelatorsPerEventTypeOrElse(
-        DefaultURAlgorithmParams.DefaultMaxCorrelatorsPerEventType
+            DefaultURAlgorithmParams.DefaultMaxCorrelatorsPerEventType
     );
     this.maxEventsPerEventType = ap.getMaxEventsPerEventTypeOrElse(
-        DefaultURAlgorithmParams.DefaultMaxEventsPerEventType
+            DefaultURAlgorithmParams.DefaultMaxEventsPerEventType
     );
-    this.modelEventNames = ap.getModelEventNames();
+    if (ap.getIndicators() == null) {
+        if (ap.getEventNames() != null) {
+          throw new IllegalArgumentException("No eventNames or indicators in engine.json and one of these is required");
+        }
+        else {
+          this.modelEventNames.addAll(ap.getEventNames());
+        }
+    }
+    else {
+       for (IndicatorParams ip : ap.getIndicators()){
+            this.modelEventNames.add(ip.getName());
+        }
+    }
 
     List<RankingParams> defaultRankingParams = new ArrayList<>(Arrays.asList(
         new RankingParams(
@@ -190,6 +202,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
     for (Tuple2<String, IndexedDatasetJava> p : preparedData.getActions()) {
       iDs.add(p._2());
     }
+
 
     if (ap.getIndicators().size() == 0) {
       cooccurrenceIDS = SimilarityAnalysisJava.cooccurrencesIDSs(
@@ -869,20 +882,20 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
 
     /** Build sort query part */
     private List<JsonElement> buildQuerySort(){
-        List<JsonElement> Seq = new ArrayList <JsonElement>();
         if (recsModel == RecsModel.All || recsModel == RecsModel.BF){
             Gson gson = new Gson();
             List <JsonElement> sortByScore = new ArrayList <JsonElement>();
             List <JsonElement> sortByRanks = new ArrayList <JsonElement>();
             sortByScore.add(new JsonParser().parse("{\"_score\": {\"order\": \"desc\"}}"));
             for(String fieldName:rankingFieldNames){
-                sortByRanks.add(new JsonParser().parse("{ \"$fieldName\": { \"unmapped_type\": \"double\", \"order\": \"desc\" } }"));
+                sortByRanks.add(new JsonParser().parse("{ \" "+ fieldName + "\": { \"unmapped_type\": \"double\", \"order\": \"desc\" } }"));
             }
             sortByScore.addAll(sortByRanks);
             return sortByScore;
         }
         else{
-            return Seq;
+
+            return new ArrayList <JsonElement>();
         }
     }
     
