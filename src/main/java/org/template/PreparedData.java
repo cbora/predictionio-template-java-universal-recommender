@@ -8,13 +8,13 @@ import org.template.indexeddataset.IndexedDatasetJava;
 import scala.Tuple2;
 
 import java.io.Serializable;
+import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @AllArgsConstructor
 public class PreparedData implements Serializable {
 
     @Getter private final List<Tuple2<String, IndexedDatasetJava>> actions;
-    @Getter private final JavaPairRDD<String,Map<String,JsonAST.JValue>> fieldsRDD;
+    @Getter private final JavaPairRDD<String,HashMap<String,JsonAST.JValue>> fieldsRDD;
 
 }
