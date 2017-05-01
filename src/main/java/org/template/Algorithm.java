@@ -512,7 +512,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
       throw ex;
     }
 
-    Float userEventBias = query.getUserBias();
+    Float userEventBias = query.getUserBiasOrElse(userBias);
     Float userEventsBoost;
     if (userEventBias > 0 && userEventBias != 1) {
       userEventsBoost = userEventBias;
