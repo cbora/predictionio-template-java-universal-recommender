@@ -836,7 +836,8 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
     // create a list of all boosted query correlators
     List<BoostableCorrelators> recentUserHistory;
     if (userBias >= 0f) {
-      recentUserHistory = boostable.subList(0, maxQueryEvents - 1);
+      recentUserHistory = boostable.subList(0,
+              Math.min(maxQueryEvents - 1, boostable.size()-1));
     } else {
       recentUserHistory = new ArrayList<>();
     }
@@ -864,7 +865,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
       obj.addProperty("boost", bc.boost);
       shouldFields.add(obj);
     }
-      
+
       String shouldScore =
       "{\n" +
       "   \"constant_score\": {\n" +
@@ -877,7 +878,6 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
       shouldFields.add(
                        new JsonParser().parse(shouldScore).getAsJsonObject()
                        );
-      
       return shouldFields;
   }
 
