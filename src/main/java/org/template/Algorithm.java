@@ -909,7 +909,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         Gson gson = new Gson();
         JsonObject obj = new JsonObject();
         JsonObject innerObj = new JsonObject();
-        
+
         JsonElement vals = gson.toJsonTree(getExcludedItems(events, query), new TypeToken<List<String>>() {
         }.getType());
         innerObj.add("values", vals);
