@@ -48,7 +48,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
     private final Integer randomSeed;
     private final Integer maxCorrelatorsPerEventType;
     private final Integer maxEventsPerEventType;
-    private final List<String> modelEventNames = new ArrayList<String>();
+    private final List<String> modelEventNames = new ArrayList<>();
     private final List<RankingParams> rankingParams;
     private final List<String> rankingFieldNames;
     private final List<String> dateNames;
@@ -97,7 +97,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
             }
         }
 
-        List<RankingParams> defaultRankingParams = new ArrayList<>(Arrays.asList(
+        List<RankingParams> defaultRankingParams = new ArrayList<>(Collections.singletonList(
                 new RankingParams(
                         DefaultURAlgorithmParams.DefaultBackfillFieldName,
                         DefaultURAlgorithmParams.DefaultBackfillType,
@@ -108,7 +108,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
                 )
         ));
         this.rankingParams = ap.getRankingsOrElse(defaultRankingParams);
-        Collections.sort(this.rankingParams, new RankingParamsComparatorByGroup());
+        this.rankingParams.sort(new RankingParamsComparatorByGroup());
         this.rankingFieldNames = this.rankingParams.stream().map(
                 rankingParams -> {
                     String rankingType = rankingParams.getBackfillTypeOrElse(
@@ -159,10 +159,13 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
          */
         @Override
         public boolean equals(Object obj) {
-            BoostableCorrelators other = (BoostableCorrelators) obj;
-            return actionName.equals(other.actionName) &&
-                    itemIDs.equals(other.itemIDs) &&
-                    boost.equals(other.boost);
+            if (obj instanceof BoostableCorrelators) {
+                BoostableCorrelators other = (BoostableCorrelators) obj;
+                return actionName.equals(other.actionName) &&
+                        itemIDs.equals(other.itemIDs) &&
+                        boost.equals(other.boost);
+            }
+            return false;
         }
 
         @Override
@@ -196,7 +199,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         }
 
         logger.info("Actions read now creating correlators");
-        List<IndexedDataset> cooccurrenceIDS = new ArrayList<IndexedDataset>();
+        List<IndexedDataset> cooccurrenceIDS;
         List<IndexedDatasetJava> iDs = new ArrayList<>();
         for (Tuple2<String, IndexedDatasetJava> p : preparedData.getActions()) {
             iDs.add(p._2());
@@ -220,7 +223,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
             // using params per matrix pair, these take the place of eventNames, maxCorrelatorsPerEventType,
             // and maxEventsPerEventType!
             List<IndicatorParams> indicators = ap.getIndicators();
-            List<DownsamplableCrossOccurrenceDataset> datasets = new ArrayList<DownsamplableCrossOccurrenceDataset>();
+            List<DownsamplableCrossOccurrenceDataset> datasets = new ArrayList<>();
             for (int i = 0; i < iDs.size(); i++) {
                 datasets.add(
                         new DownsamplableCrossOccurrenceDataset(
@@ -371,7 +374,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
             SparkContext sc
     ) {
         PopModel popModel = new PopModel(fieldsRdd, sc);
-        List<Tuple2<String, JavaPairRDD<String, Double>>> rankRDDs = new ArrayList();
+        List<Tuple2<String, JavaPairRDD<String, Double>>> rankRDDs = new ArrayList<>();
         for (RankingParams rp : rankingParams) {
             String rankingType = rp.getBackfillType() == null ? DefaultURAlgorithmParams.DefaultBackfillType
                     : rp.getBackfillType();
@@ -393,7 +396,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         for (Tuple2<String, JavaPairRDD<String, Double>> t : rankRDDs) {
             String fieldName = t._1();
             JavaPairRDD<String, Double> rightRdd = t._2();
-            JavaPairRDD joined = acc.fullOuterJoin(rightRdd);
+            JavaPairRDD<String, Tuple2<Optional<HashMap<String, JsonAST.JValue>>, Optional<Double>>> joined = acc.fullOuterJoin(rightRdd);
             acc = joined.mapToPair(new RankFunction(fieldName));
         }
         return acc;
@@ -405,17 +408,18 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
 
     @Override
     public NullModel train(SparkContext sc, PreparedData preparedData) {
-        if (this.recsModel.equals(RecsModel.All))
-            return this.calcAll(sc, preparedData);
-        else if (this.recsModel.equals(RecsModel.BF))
-            return this.calcPop(sc, preparedData);
-        else if (this.recsModel.equals(RecsModel.CF)) {
-            return this.calcAll(sc, preparedData, false);
-        } else {
-            throw new IllegalArgumentException(
-                    String.format("| Bad algorithm param recsModel=[%s] in engine definition params, possibly a bad json value.  |Use one of the available parameter values (%s).",
-                            this.recsModel, new RecsModel().toString())
-            );
+        switch (this.recsModel) {
+            case RecsModel.All:
+                return this.calcAll(sc, preparedData);
+            case RecsModel.BF:
+                return this.calcPop(sc, preparedData);
+            case RecsModel.CF:
+                return this.calcAll(sc, preparedData, false);
+            default:
+                throw new IllegalArgumentException(
+                        String.format("| Bad algorithm param recsModel=[%s] in engine definition params, possibly a bad json value.  |Use one of the available parameter values (%s).",
+                                this.recsModel, new RecsModel().toString())
+                );
         }
     }
 
@@ -539,16 +543,14 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         List<FilterCorrelators> recentUserHistoryFilter = new ArrayList<>();
         if (userBias < 0.0f) {
             recentUserHistoryFilter = boostable.stream().map(
-                    correlator -> {
-                        return correlator.toFilterCorrelators();
-                    }
+                    BoostableCorrelators::toFilterCorrelators
             ).collect(toList()).subList(0, maxQueryEvents - 1);
         }
 
         List<FilterCorrelators> similarItemsFilter = new ArrayList<>();
         if (userBias < 0.0f) {
             similarItemsFilter = getBiasedSimilarItems(query).stream()
-                    .map(correlator -> correlator.toFilterCorrelators())
+                    .map(BoostableCorrelators::toFilterCorrelators)
                     .collect(toList())
                     .subList(0, maxQueryEvents - 1);
         }
@@ -594,11 +596,10 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
                 .collect(toList());
 
         paramsFilterFields.addAll(queryFilterFields);
-        List<FilterCorrelators> toReturn = paramsFilterFields.stream()
+        return paramsFilterFields.stream()
                 .map(field -> new FilterCorrelators(field.getName(), field.getValues()))
                 .distinct()
                 .collect(toList());
-        return toReturn;
     }
 
     private List<JsonElement> getFilteringDateRange(Query query) {
@@ -641,18 +642,17 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
                     .append("\n        }\n      }\n    },\n    \"boost\": 0\n  }\n}\n")
                     .toString();
 
-            StringBuilder range = rangeStart;
             if (!after.isEmpty()) {
-                range.append(rangeAfter);
+                rangeStart.append(rangeAfter);
 
                 if (!before.isEmpty())
-                    range.append(",");
+                    rangeStart.append(",");
             }
             if (!before.isEmpty())
-                range.append(rangeBefore);
+                rangeStart.append(rangeBefore);
 
-            range.append(rangeEnd);
-            JsonElement el = new JsonParser().parse(range.toString());
+            rangeStart.append(rangeEnd);
+            JsonElement el = new JsonParser().parse(rangeStart.toString());
             json.add(el);
         } else if (ap.getAvailableDateName() != null && ap.getExpireDateName() != null) {
             String availableDate = ap.getAvailableDateName();
@@ -886,10 +886,10 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
      * Build sort query part
      */
     private List<JsonElement> buildQuerySort() {
-        if (recsModel == RecsModel.All || recsModel == RecsModel.BF) {
+        if (recsModel.equals(RecsModel.All) || recsModel.equals(RecsModel.BF)) {
             Gson gson = new Gson();
-            List<JsonElement> sortByScore = new ArrayList<JsonElement>();
-            List<JsonElement> sortByRanks = new ArrayList<JsonElement>();
+            List<JsonElement> sortByScore = new ArrayList<>();
+            List<JsonElement> sortByRanks = new ArrayList<>();
             sortByScore.add(new JsonParser().parse("{\"_score\": {\"order\": \"desc\"}}"));
             for (String fieldName : rankingFieldNames) {
                 sortByRanks.add(new JsonParser().parse("{ \"" + fieldName + "\": { \"unmapped_type\": \"double\", \"order\": \"desc\" } }"));
@@ -898,7 +898,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
             return sortByScore;
         } else {
 
-            return new ArrayList<JsonElement>();
+            return new ArrayList<>();
         }
     }
 
@@ -923,8 +923,8 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
      * Create a list of item ids that the user has interacted with or are not to be included in recommendations
      */
     private List<String> getExcludedItems(List<Event> events, Query query) {
-        List<Event> blacklistedItems = new ArrayList<Event>();
-        List<String> blacklistedStrings = new ArrayList<String>();
+        List<Event> blacklistedItems = new ArrayList<>();
+        List<String> blacklistedStrings = new ArrayList<>();
         // either a list or an empty list of filtering events so honor them
         for (Event event : events) {
             if (blackListEvents.isEmpty()) {
@@ -957,7 +957,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
             blacklistedStrings.add(query.getItem());
         }
 
-        List<String> allExcludedStrings = new ArrayList<String>();
+        List<String> allExcludedStrings = new ArrayList<>();
         allExcludedStrings.addAll(blacklistedStrings.stream().distinct().collect(toList()));
         return allExcludedStrings;
     }
