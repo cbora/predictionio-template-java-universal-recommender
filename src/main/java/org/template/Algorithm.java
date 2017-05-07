@@ -614,8 +614,8 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         if (dr != null && (dr.getAfter() != null || dr.getBefore() != null)) {
             String name = dr.getName();
 
-            DateTime beforeDate = new DateTime(dr.getBefore());
-            DateTime afterDate = new DateTime(dr.getAfter());
+            DateTime beforeDate = dr.getBefore();
+            DateTime afterDate = dr.getAfter();
 
             String before = beforeDate == null ? "" : beforeDate.toString();
             String after = afterDate == null ? "" : afterDate.toString();

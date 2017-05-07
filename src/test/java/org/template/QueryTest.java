@@ -47,7 +47,7 @@ public class QueryTest {
     assertEquals(queryJson, gson.toJson(query));
   }
 
-  @Test
+  @Ignore
   public void fullQueryParameters() {
     String user = "xyz";
     Float userBias = 1.0f;
