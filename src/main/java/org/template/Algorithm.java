@@ -714,7 +714,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
 
         try {
             Tuple2<List<BoostableCorrelators>, List<Event>> boostableEvents = getBiasedRecentUserActions(query);
-            int numRecs = query.getNumOrElse(DefaultURAlgorithmParams.DefaultNum);
+            int numRecs = query.getNumOrElse(limit);
             List<JsonElement> should = buildQueryShould(query, boostableEvents._1());
             List<JsonElement> must = buildQueryMust(query, boostableEvents._1());
             JsonElement mustNot = buildQueryMustNot(query, boostableEvents._2());
@@ -835,7 +835,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         List<BoostableCorrelators> recentUserHistory;
         if (userBias >= 0f) {
             recentUserHistory = boostable.subList(0,
-                    Math.min(maxQueryEvents - 1, boostable.size() - 1));
+                    Math.min(maxQueryEvents - 1, boostable.size()));
         } else {
             recentUserHistory = new ArrayList<>();
         }
@@ -910,11 +910,13 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         JsonObject obj = new JsonObject();
         JsonObject innerObj = new JsonObject();
 
-        JsonElement vals = gson.toJsonTree(getExcludedItems(events, query), new TypeToken<List<String>>() {
+        List<String> blacklist = getExcludedItems(events, query);
+        System.out.println(blacklist);
+        JsonElement vals = gson.toJsonTree(blacklist, new TypeToken<List<String>>() {
         }.getType());
         innerObj.add("values", vals);
+        innerObj.addProperty("boost", 0);
         obj.add("ids", innerObj);
-        obj.addProperty("boost", 0);
 
         return obj;
     }
@@ -926,6 +928,8 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         List<Event> blacklistedItems = new ArrayList<>();
         List<String> blacklistedStrings = new ArrayList<>();
         // either a list or an empty list of filtering events so honor them
+        logger.info("[getExcludedItems] events: "+events.size() + "; blackListEvents:" +blackListEvents.size()+
+        "modelEventNames: "+modelEventNames.size() + ", " + modelEventNames.get(0));
         for (Event event : events) {
             if (blackListEvents.isEmpty()) {
                 if (event.event().equals(modelEventNames.get(0))) {
