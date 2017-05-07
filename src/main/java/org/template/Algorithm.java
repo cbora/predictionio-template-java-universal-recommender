@@ -714,7 +714,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
 
         try {
             Tuple2<List<BoostableCorrelators>, List<Event>> boostableEvents = getBiasedRecentUserActions(query);
-            int numRecs = query.getNumOrElse(DefaultURAlgorithmParams.DefaultNum);
+            int numRecs = query.getNumOrElse(limit);
             List<JsonElement> should = buildQueryShould(query, boostableEvents._1());
             List<JsonElement> must = buildQueryMust(query, boostableEvents._1());
             JsonElement mustNot = buildQueryMustNot(query, boostableEvents._2());
