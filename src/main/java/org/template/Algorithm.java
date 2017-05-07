@@ -835,7 +835,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         List<BoostableCorrelators> recentUserHistory;
         if (userBias >= 0f) {
             recentUserHistory = boostable.subList(0,
-                    Math.min(maxQueryEvents - 1, boostable.size() - 1));
+                    Math.min(maxQueryEvents - 1, boostable.size()));
         } else {
             recentUserHistory = new ArrayList<>();
         }
