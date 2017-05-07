@@ -172,7 +172,7 @@ public class Conversions {
                     return null;
                 }
 
-            }).filter(ele -> ele != null);
+            }).filter(Objects::nonNull);
         }
     }
 }

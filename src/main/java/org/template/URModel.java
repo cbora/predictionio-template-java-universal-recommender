@@ -58,8 +58,8 @@ public class URModel {
             final IndexedDataset dataset = t._2();
 
 
-            /** Chris Fifty sanity check */
-            /**
+            /* Chris Fifty sanity check */
+            /*
              * Size of teh vector: 5,5,0,5,6,2,4 and RDD size = 7...
 
 
@@ -77,13 +77,13 @@ public class URModel {
                 }
 
             */
-            /** end chris fifty sanity check */
+            /* end chris fifty sanity check */
 
             final IndexedDatasetSpark IDSpark = (IndexedDatasetSpark) dataset;
             final IndexedDatasetJava IDJava = new IndexedDatasetJava(IDSpark);
 
-            /** Chris Fifty sanity check #2 */
-            /**
+            /* Chris Fifty sanity check #2 */
+            /*
              * size of the vector: 5,4,0,4,5,2,4 and size of the RDD = 7
 
             CheckpointedDrm temp = IDJava.matrix();
@@ -99,7 +99,7 @@ public class URModel {
                 throw new IllegalStateException("MUST SEE THIS");
             }
              */
-            /** End chris fifty sanity check 2 */
+            /* End chris fifty sanity check 2 */
             final Conversions.IndexedDatasetConversions IDConvert = new Conversions.IndexedDatasetConversions(IDJava);
             correlatorRDDs.add(IDConvert.toStringMapRDD(actionName));
         }

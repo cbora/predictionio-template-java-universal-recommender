@@ -14,7 +14,7 @@ public class RankingFieldName {
 
     public static List<String> toList() {
         List<String> list = new LinkedList<>();
-        list.addAll(Arrays.asList(new String[]{UserRank, UniqueRank, PopRank, TrendRank, HotRank}));
+        list.addAll(Arrays.asList(UserRank, UniqueRank, PopRank, TrendRank, HotRank));
         return list;
     }
 

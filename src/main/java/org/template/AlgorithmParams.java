@@ -174,7 +174,7 @@ public class AlgorithmParams implements Params {
       return this.getEventNames();
     } else {
       return this.getIndicators().stream()
-          .map(indicatorParams -> indicatorParams.getName())
+          .map(IndicatorParams::getName)
           .collect(toList());
     }
   }

@@ -10,6 +10,6 @@ public class RecsModel {
 
     @Override
     public String toString() {
-        return this.All + " | " + this.CF + " | " + this.BF;
+        return All + " | " + CF + " | " + BF;
     }
 }

@@ -27,23 +27,23 @@ import java.util.stream.Collectors;
 public class DataSource extends PJavaDataSource<TrainingData, EmptyParams, Query, Set<String>>
         implements SelfCleaningDataSource {
 
-    Logger logger = new Logger(LoggerFactory.getLogger(SelfCleaningDataSource.class));
-    transient PEvents pEventsDb = Storage.getPEvents();
-    transient LEvents lEventsDb = Storage.getLEvents(false);
+    private final Logger logger = new Logger(LoggerFactory.getLogger(SelfCleaningDataSource.class));
+    private transient PEvents pEventsDb = Storage.getPEvents();
+    private transient LEvents lEventsDb = Storage.getLEvents(false);
 
     public final DataSourceParams dsp; // Data source param object
 
     public DataSource(DataSourceParams dsp) {
         this.dsp = dsp;
         // Draw info
-        /***
+        /*
         drawInfo("Init DataSource", Seq(
                                         ("===================", "==================="),
                                         ("App name", dsp.getAppName()),
                                         ("Event window", dsp.getEventWindow()),
                                         ("Event names", dsp.getEventNames())
                                         ))
-        **/
+        */
         
     }
 
@@ -87,14 +87,12 @@ public class DataSource extends PJavaDataSource<TrainingData, EmptyParams, Query
                 eventNames.stream()
                 .map(eventName -> {
                     JavaRDD<Tuple2<String, String>> actionRDD =
-                            eventsRDD.filter(event -> { return !event.entityId().isEmpty()
+                            eventsRDD.filter(event -> !event.entityId().isEmpty()
                             && !event.targetEntityId().get().isEmpty()
-                            && eventName.equals(event.event()); })
-                                    .map(event -> {
-                                        return new Tuple2<String, String>(
-                                                event.entityId(),
-                                                event.targetEntityId().get());
-                                    });
+                            && eventName.equals(event.event()))
+                                    .map(event -> new Tuple2<String, String>(
+                                            event.entityId(),
+                                            event.targetEntityId().get()));
                     return new Tuple2<>(eventName, JavaPairRDD.fromJavaRDD(actionRDD));
                 })
                 .filter( pair -> !pair._2().isEmpty())
@@ -115,13 +113,13 @@ public class DataSource extends PJavaDataSource<TrainingData, EmptyParams, Query
                 sc                                          // spark context
         ).repartition(sc.defaultParallelism());
 
-        JavaPairRDD fieldsJavaPairRDD = JavaPairRDD.fromJavaRDD(fieldsRDD);
+        JavaPairRDD<String, PropertyMap> fieldsJavaPairRDD = JavaPairRDD.fromJavaRDD(fieldsRDD);
 
         return new TrainingData(actionRDDs, fieldsJavaPairRDD );
     }
 
     private boolean isSetEvent(Event e) {
-        return e.event() == "$set" || e.event() == "$unset";
+        return e.event().equals("$set") || e.event().equals("$unset");
     }
 
     public Logger logger() {
