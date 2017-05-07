@@ -863,7 +863,7 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
 
             obj.add("terms", innerObj);
             if (bc.boost != null)
-                obj.addProperty("boost", bc.boost);
+                innerObj.addProperty("boost", bc.boost);
             shouldFields.add(obj);
         }
 
