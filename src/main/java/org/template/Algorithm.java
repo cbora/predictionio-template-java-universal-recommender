@@ -910,11 +910,13 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         JsonObject obj = new JsonObject();
         JsonObject innerObj = new JsonObject();
 
-        JsonElement vals = gson.toJsonTree(getExcludedItems(events, query), new TypeToken<List<String>>() {
+        List<String> blacklist = getExcludedItems(events, query);
+        System.out.println(blacklist);
+        JsonElement vals = gson.toJsonTree(blacklist, new TypeToken<List<String>>() {
         }.getType());
         innerObj.add("values", vals);
+        innerObj.addProperty("boost", 0);
         obj.add("ids", innerObj);
-        obj.addProperty("boost", 0);
 
         return obj;
     }
@@ -926,6 +928,8 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         List<Event> blacklistedItems = new ArrayList<>();
         List<String> blacklistedStrings = new ArrayList<>();
         // either a list or an empty list of filtering events so honor them
+        logger.info("[getExcludedItems] events: "+events.size() + "; blackListEvents:" +blackListEvents.size()+
+        "modelEventNames: "+modelEventNames.size() + ", " + modelEventNames.get(0));
         for (Event event : events) {
             if (blackListEvents.isEmpty()) {
                 if (event.event().equals(modelEventNames.get(0))) {
