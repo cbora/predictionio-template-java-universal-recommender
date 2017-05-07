@@ -928,10 +928,10 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
         // either a list or an empty list of filtering events so honor them
         for (Event event : events) {
             if (blackListEvents.isEmpty()) {
-                if (event.equals(modelEventNames.get(0))) {
+                if (event.event().equals(modelEventNames.get(0))) {
                     blacklistedItems.add(event);
                 }
-            } else if (blackListEvents.contains(event)) {
+            } else if (blackListEvents.contains(event.event())) {
                 blacklistedItems.add(event);
             }
         }
