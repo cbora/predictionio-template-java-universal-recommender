@@ -576,8 +576,8 @@ public class Algorithm extends P2LJavaAlgorithm<PreparedData, NullModel, Query, 
                     }.getType());
 
                     innerObj.add(actionName, itemIDsObj);
+                    innerObj.addProperty("boost", 0);
                     obj.add("terms", innerObj);
-                    obj.addProperty("boost", 0);
 
                     return obj;
                 }
