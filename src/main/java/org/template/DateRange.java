@@ -14,8 +14,8 @@ import java.util.List;
 
 public class DateRange implements Serializable, CustomQuerySerializer {
   @Getter private final String name;
-  @Getter private final DateTime before; // name of item property for the date comparison
-  @Getter private final DateTime after; // both empty should be ignored
+  @Getter private final String before; // name of item property for the date comparison
+  @Getter private final String after; // both empty should be ignored
 
   /**
    *  One of the bound can be omitted but not both.
@@ -30,13 +30,15 @@ public class DateRange implements Serializable, CustomQuerySerializer {
     this.name = name;
 
     if (before != null && !before.isEmpty()) {
-      this.before = new DateTime(before);
+//      this.before = new DateTime(before);
+      this.before = before;
     } else {
       this.before = null;
     }
 
     if (after != null && !after.isEmpty()) {
-      this.after = new DateTime(after);
+//      this.after = new DateTime(after);
+      this.after = after;
     } else {
       this.after = null;
     }
