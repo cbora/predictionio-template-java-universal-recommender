@@ -3,6 +3,7 @@ package org.template;
 import com.google.gson.TypeAdapterFactory;
 import lombok.Getter;
 import org.apache.predictionio.controller.CustomQuerySerializer;
+import org.joda.time.DateTime;
 import org.json4s.Formats;
 import scala.collection.JavaConversions;
 import scala.collection.Seq;
