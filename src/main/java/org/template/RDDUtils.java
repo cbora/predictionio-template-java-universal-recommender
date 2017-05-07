@@ -11,6 +11,7 @@ import scala.Tuple2;
 import scala.collection.JavaConverters;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -84,6 +85,21 @@ public class RDDUtils {
      */
     public static <K1,K2,V> JavaPairRDD<K1,Map<K2,V>> combineMapByKey(JavaPairRDD<K1,Map<K2,V>> rdd) {
         return rdd.reduceByKey((m1, m2) -> {m1.putAll(m2); return m1;});
+    }
+
+    /**
+     * Created method by Chris 50 to get around map serialization problems
+     * @param rdd
+     * @param <K1>
+     * @param <K2>
+     * @param <V>
+     * @return
+     */
+    public static <K1,K2,V> JavaPairRDD<K1,HashMap<K2,V>> combineHashMapByKey(JavaPairRDD<K1,HashMap<K2,V>> rdd) {
+        return rdd.reduceByKey((m1, m2) -> {
+            m1.putAll(m2);
+            return m1;
+        });
     }
 
     /**

@@ -10,6 +10,7 @@ import org.apache.mahout.sparkbindings.indexeddataset.IndexedDatasetSpark;
 import org.apache.predictionio.data.store.java.OptionHelper;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
+import scala.Int;
 
 import java.util.Optional;
 
@@ -51,7 +52,7 @@ public class IndexedDatasetJava implements IndexedDataset {
     public IndexedDataset create(CheckpointedDrm<Object> drm, BiDictionary colIds, BiDictionary rowIds){
         return ids.create(drm, colIds, rowIds);
     }
-    public CheckpointedDrm matrix() {return ids.matrix();}
+    public CheckpointedDrm<Object> matrix() {return ids.matrix();}
 
     public void dfsWrite(String dest, SparkDistributedContext sc){
         ids.dfsWrite(dest, ids.dfsWrite$default$2(), sc);

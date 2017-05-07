@@ -86,6 +86,12 @@ public class Query implements Serializable, CustomQuerySerializer {
     }
   }
 
+  public Float getUserBiasOrElse(Float defaultValue) {
+    return this.userBias == null
+    ? defaultValue
+    : this.getUserBias();
+  }
+
   @Override
   public Formats querySerializer() {
     return null;

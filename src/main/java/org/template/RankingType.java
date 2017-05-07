@@ -13,7 +13,7 @@ public class RankingType {
 
     public static List<String> toList() {
         List<String> list = new LinkedList<>();
-        list.addAll(Arrays.asList(new String[]{Popular, Trending, Hot, UserDefined, Random}));
+        list.addAll(Arrays.asList(Popular, Trending, Hot, UserDefined, Random));
         return list;
     }
 
