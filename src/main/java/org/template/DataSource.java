@@ -1,6 +1,6 @@
 package org.template;
 
-import grizzled.slf4j.Logger;
+import org.slf4j.Logger;
 import org.apache.predictionio.controller.EmptyParams;
 import org.apache.predictionio.controller.java.PJavaDataSource;
 import org.apache.predictionio.core.EventWindow;
@@ -27,24 +27,26 @@ import java.util.stream.Collectors;
 public class DataSource extends PJavaDataSource<TrainingData, EmptyParams, Query, Set<String>>
         implements SelfCleaningDataSource {
 
-    private final Logger logger = new Logger(LoggerFactory.getLogger(SelfCleaningDataSource.class));
+    private final Logger logger = LoggerFactory.getLogger(SelfCleaningDataSource.class);
     private transient PEvents pEventsDb = Storage.getPEvents();
     private transient LEvents lEventsDb = Storage.getLEvents(false);
 
     public final DataSourceParams dsp; // Data source param object
 
+    /**
+     * Data Source reads data from an input source and transforms it into a desired format
+     * @param dsp
+     */
     public DataSource(DataSourceParams dsp) {
         this.dsp = dsp;
+
         // Draw info
-        /*
-        drawInfo("Init DataSource", Seq(
-                                        ("===================", "==================="),
-                                        ("App name", dsp.getAppName()),
-                                        ("Event window", dsp.getEventWindow()),
-                                        ("Event names", dsp.getEventNames())
-                                        ))
-        */
-        
+        List<Tuple2<String, Object>> t = new ArrayList<Tuple2<String, Object>>();
+        t.add(new Tuple2("===================", "==================="));
+        t.add(new Tuple2("App name", dsp.getAppName()));
+        t.add(new Tuple2("Event window", dsp.getEventWindow()));
+        t.add(new Tuple2("Event names", dsp.getEventNames()));
+        Conversions.drawInfo("Init DataSource", t, this.logger);
     }
 
     /* Getter
@@ -61,13 +63,37 @@ public class DataSource extends PJavaDataSource<TrainingData, EmptyParams, Query
         return dsp.getEventWindow();
     }
 
+    /**
+     *  Separate events by event name
+     *  @return actionRdds
+     * */
+    public List<Tuple2<String, JavaPairRDD<String, String>>> separateEvents(JavaRDD<Event> eventsRDD) {
+        ArrayList<String> eventNames = dsp.getEventNames(); // get event names
+
+        // Now separate events by event names
+        List<Tuple2<String, JavaPairRDD<String,String>>> actionRDDs =
+                eventNames.stream()
+                        .map(eventName -> {
+                            JavaRDD<Tuple2<String, String>> actionRDD =
+                                    eventsRDD.filter(event -> !event.entityId().isEmpty()
+                                            && !event.targetEntityId().get().isEmpty()
+                                            && eventName.equals(event.event()))
+                                            .map(event -> new Tuple2<String, String>(
+                                                    event.entityId(),
+                                                    event.targetEntityId().get()));
+                            return new Tuple2<>(eventName, JavaPairRDD.fromJavaRDD(actionRDD));
+                        })
+                        .filter( pair -> !pair._2().isEmpty())
+                        .collect(Collectors.toList());
+
+        return actionRDDs;
+
+    }
+
     /* Getter
      * @retrun new TrainingData object
      */
     public TrainingData readTraining(SparkContext sc) {
-
-        ArrayList<String> eventNames = dsp.getEventNames(); // get event names
-
         // find events associated with the particular app name and eventNames
         JavaRDD<Event> eventsRDD = PJavaEventStore.find(
                 dsp.getAppName(),                       // app name
@@ -82,26 +108,10 @@ public class DataSource extends PJavaDataSource<TrainingData, EmptyParams, Query
                 sc                                      // spark context
         ).repartition(sc.defaultParallelism());
 
-        // Now separate events by event name
-        List<Tuple2<String, JavaPairRDD<String,String>>> actionRDDs =
-                eventNames.stream()
-                .map(eventName -> {
-                    JavaRDD<Tuple2<String, String>> actionRDD =
-                            eventsRDD.filter(event -> !event.entityId().isEmpty()
-                            && !event.targetEntityId().get().isEmpty()
-                            && eventName.equals(event.event()))
-                                    .map(event -> new Tuple2<String, String>(
-                                            event.entityId(),
-                                            event.targetEntityId().get()));
-                    return new Tuple2<>(eventName, JavaPairRDD.fromJavaRDD(actionRDD));
-                })
-                .filter( pair -> !pair._2().isEmpty())
-                .collect(Collectors.toList());
+        List<Tuple2<String, JavaPairRDD<String, String>>> actionRDDs = separateEvents(eventsRDD);
+        String eventNamesLogger = actionRDDs.stream().map(i -> i._1()).collect(Collectors.joining(", "));
 
-        // String eventNamesLogger = actionRDDs.stream()
-         //       .map(i -> i._1()).collect(Collectors.joining(", "));
-
-        // logger.debug(String.format("Received actions for events %s", eventNamesLogger));
+        logger.debug(String.format("Received actions for events %s", eventNamesLogger));
 
         JavaRDD<Tuple2<String, PropertyMap>> fieldsRDD = PJavaEventStore.aggregateProperties(
                 dsp.getAppName(),                           // app name
@@ -122,8 +132,8 @@ public class DataSource extends PJavaDataSource<TrainingData, EmptyParams, Query
         return e.event().equals("$set") || e.event().equals("$unset");
     }
 
-    public Logger logger() {
-      return this.logger;
+    public grizzled.slf4j.Logger logger() {
+      return (grizzled.slf4j.Logger)this.logger;
     }
 
     @Override
