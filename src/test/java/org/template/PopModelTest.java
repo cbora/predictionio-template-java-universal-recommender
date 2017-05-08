@@ -18,10 +18,7 @@ import scala.collection.Seq;
 import scala.reflect.ClassTag;
 import scala.reflect.ClassTag$;
 
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.Assert.assertTrue;
 
@@ -48,14 +45,14 @@ public class PopModelTest {
         sc = new SparkContext(conf);
 
         // create fieldsRDD
-        List<Tuple2<String, Map<String, JsonAST.JValue>>> fieldsList = Arrays.asList(
-                new Tuple2<String, Map<String, JsonAST.JValue>>("a", null),
-                new Tuple2<String, Map<String, JsonAST.JValue>>("e", null)
+        List<Tuple2<String, HashMap<String, JsonAST.JValue>>> fieldsList = Arrays.asList(
+                new Tuple2<String, HashMap<String, JsonAST.JValue>>("a", null),
+                new Tuple2<String, HashMap<String, JsonAST.JValue>>("e", null)
         );
-        Seq<Tuple2<String, Map<String, JsonAST.JValue>>> fieldsSeq = JavaConversions.asScalaBuffer(fieldsList).toSeq();
-        ClassTag<Tuple2<String, Map<String, JsonAST.JValue>>> tag = ClassTag$.MODULE$.apply(Tuple2.class);
-        JavaRDD<Tuple2<String, Map<String, JsonAST.JValue>>> _fieldsRDD = sc.parallelize(fieldsSeq, sc.defaultParallelism(), tag).toJavaRDD();
-        JavaPairRDD<String, Map<String, JsonAST.JValue>> fieldsRDD = JavaPairRDD.fromJavaRDD(_fieldsRDD);
+        Seq<Tuple2<String, HashMap<String, JsonAST.JValue>>> fieldsSeq = JavaConversions.asScalaBuffer(fieldsList).toSeq();
+        ClassTag<Tuple2<String, HashMap<String, JsonAST.JValue>>> tag = ClassTag$.MODULE$.apply(Tuple2.class);
+        JavaRDD<Tuple2<String, HashMap<String, JsonAST.JValue>>> _fieldsRDD = sc.parallelize(fieldsSeq, sc.defaultParallelism(), tag).toJavaRDD();
+        JavaPairRDD<String, HashMap<String, JsonAST.JValue>> fieldsRDD = JavaPairRDD.fromJavaRDD(_fieldsRDD);
 
         // create Pop Model
         model = new PopModel(fieldsRDD, sc);

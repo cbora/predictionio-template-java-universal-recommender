@@ -34,7 +34,7 @@ public class PopModel {
         nameByType = Collections.unmodifiableMap(map);
     }
 
-    private final JavaPairRDD<String, Map<String, JsonAST.JValue>> fieldsRDD;  // ItemID -> ItemProps
+    private final JavaPairRDD<String, HashMap<String, JsonAST.JValue>> fieldsRDD;  // ItemID -> ItemProps
     private final SparkContext sc;
 
     /**

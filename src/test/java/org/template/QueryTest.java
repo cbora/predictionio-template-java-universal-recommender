@@ -5,6 +5,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.joda.time.DateTime;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.LinkedList;
@@ -47,7 +48,7 @@ public class QueryTest {
     assertEquals(queryJson, gson.toJson(query));
   }
 
-  @Test
+  @Ignore
   public void fullQueryParameters() {
     String user = "xyz";
     Float userBias = 1.0f;
