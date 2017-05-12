@@ -52,7 +52,7 @@ public class AlgorithmParams implements Params {
   private final Long seed;
 
   // the AllArgs constructor
-  public AlgorithmParams(String appName, String indexName, String typeName, String recsModel, List<String> eventNames, List<String> blacklistEvents, Integer maxQueryEvents, Integer maxEventsPerEventType, Integer maxCorrelatorsPerEventType, Integer num, Float userBias, Float itemBias, Boolean returnSelf, List<Field> fields, List<RankingParams> rankings, String availableDateName, String expireDateName, String dateName, List<IndicatorParams> indicators, Long seed) {
+  protected AlgorithmParams(String appName, String indexName, String typeName, String recsModel, List<String> eventNames, List<String> blacklistEvents, Integer maxQueryEvents, Integer maxEventsPerEventType, Integer maxCorrelatorsPerEventType, Integer num, Float userBias, Float itemBias, Boolean returnSelf, List<Field> fields, List<RankingParams> rankings, String availableDateName, String expireDateName, String dateName, List<IndicatorParams> indicators, Long seed) {
 
     if (appName == null || appName.isEmpty())
       throw new IllegalArgumentException("App name is missing");
@@ -88,7 +88,7 @@ public class AlgorithmParams implements Params {
     this.seed = seed;
   }
 
-  public String getRecsModelOrElse(String defaultValue) {
+  protected String getRecsModelOrElse(String defaultValue) {
     return this.recsModel == null || this.recsModel.isEmpty()
         ? defaultValue
         : this.getRecsModel();
@@ -96,51 +96,51 @@ public class AlgorithmParams implements Params {
 
   public List<String> getEventNames() {
     return this.eventNames == null
-        ? Collections.<String>emptyList()
+        ? Collections.emptyList()
         : this.eventNames;
   }
 
-  public List<String> getBlacklistEvents() {
+  protected List<String> getBlacklistEvents() {
     return this.blacklistEvents == null
-        ? Collections.<String>emptyList()
+        ? Collections.emptyList()
         : this.blacklistEvents;
   }
 
-  public Integer getMaxQueryEventsOrElse(Integer defaultValue) {
+  protected Integer getMaxQueryEventsOrElse(Integer defaultValue) {
     return this.maxQueryEvents == null
         ? defaultValue
         : this.getMaxQueryEvents();
   }
 
-  public Integer getMaxEventsPerEventTypeOrElse(Integer defaultValue) {
+  protected Integer getMaxEventsPerEventTypeOrElse(Integer defaultValue) {
     return this.maxEventsPerEventType == null
         ? defaultValue
         : this.getMaxEventsPerEventType();
   }
 
-  public Integer getMaxCorrelatorsPerEventTypeOrElse(Integer defaultValue) {
+  protected Integer getMaxCorrelatorsPerEventTypeOrElse(Integer defaultValue) {
     return this.maxCorrelatorsPerEventType == null
         ? defaultValue
         : this.getMaxCorrelatorsPerEventType();
   }
 
-  public Integer getNumOrElse(Integer defaultValue) {
+  protected Integer getNumOrElse(Integer defaultValue) {
     return this.num == null ? defaultValue : this.getNum();
   }
 
-  public Float getUserBiasOrElse(Float defaultValue) {
+  protected Float getUserBiasOrElse(Float defaultValue) {
     return this.userBias == null
         ? defaultValue
         : this.getUserBias();
   }
 
-  public Float getItemBiasOrElse(Float defaultValue) {
+  protected Float getItemBiasOrElse(Float defaultValue) {
     return this.itemBias == null
         ? defaultValue
         : this.getItemBias();
   }
 
-  public Boolean getReturnSelfOrElse(Boolean defaultValue) {
+  protected Boolean getReturnSelfOrElse(Boolean defaultValue) {
     return this.returnSelf == null
         ? defaultValue
         : this.getReturnSelf();
@@ -152,7 +152,7 @@ public class AlgorithmParams implements Params {
         : this.fields;
   }
 
-  public List<RankingParams> getRankingsOrElse(List<RankingParams> defaultValue) {
+  protected List<RankingParams> getRankingsOrElse(List<RankingParams> defaultValue) {
     return this.rankings == null
         ? defaultValue
         : this.getRankings();
@@ -164,7 +164,7 @@ public class AlgorithmParams implements Params {
         : this.rankings;
   }
 
-  public List<String> getModelEventNames() {
+  protected List<String> getModelEventNames() {
     boolean indicatorsIsEmpty = this.getIndicators().isEmpty();
     if (indicatorsIsEmpty && this.getEventNames().isEmpty()) {
       throw new IllegalArgumentException(
@@ -179,13 +179,13 @@ public class AlgorithmParams implements Params {
     }
   }
 
-  public List<IndicatorParams> getIndicators() {
+  protected List<IndicatorParams> getIndicators() {
     return this.indicators == null
         ? Collections.emptyList()
         : this.indicators;
   }
 
-  public Long getSeedOrElse(Long defaultValue) {
+  protected Long getSeedOrElse(Long defaultValue) {
     return this.seed == null
         ? defaultValue
         : this.getSeed();

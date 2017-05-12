@@ -5,12 +5,10 @@ import org.apache.mahout.math.drm.DistributedContext;
 import org.apache.mahout.math.indexeddataset.BiDictionary;
 import org.apache.mahout.math.indexeddataset.IndexedDataset;
 import org.apache.mahout.math.indexeddataset.Schema;
-import org.apache.mahout.sparkbindings.SparkDistributedContext;
 import org.apache.mahout.sparkbindings.indexeddataset.IndexedDatasetSpark;
 import org.apache.predictionio.data.store.java.OptionHelper;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaPairRDD;
-import scala.Int;
 
 import java.util.Optional;
 
@@ -18,62 +16,63 @@ import java.util.Optional;
  * Created by Alvin Zhu on 3/1/17.
  */
 public class IndexedDatasetJava implements IndexedDataset {
-    private IndexedDatasetSpark ids;
+  private IndexedDatasetSpark ids;
 
-    public IndexedDatasetJava(){}
+  public IndexedDatasetJava(CheckpointedDrm drm,
+                            BiDictionaryJava rowIds,
+                            BiDictionaryJava colIds) {
+    ids = new IndexedDatasetSpark(drm, rowIds.bdict, colIds.bdict);
+  }
 
-    public IndexedDatasetJava(CheckpointedDrm drm,
-                              BiDictionaryJava rowIds,
-                              BiDictionaryJava colIds){
-        ids = new IndexedDatasetSpark(drm, rowIds.bdict, colIds.bdict);
-    }
+  public IndexedDatasetJava(IndexedDatasetSpark ids) {
+    this.ids = ids;
+  }
 
-    public IndexedDatasetJava(IndexedDatasetSpark ids){
-        this.ids = ids;
-    }
+  public CheckpointedDrm getMatrix() {
+    return ids.matrix();
+  }
 
-    public CheckpointedDrm getMatrix(){
-        return ids.matrix();
-    }
+  public BiDictionaryJava getRowIds() {
+    return new BiDictionaryJava(ids.rowIDs());
+  }
 
-    public BiDictionaryJava getRowIds(){
-        return new BiDictionaryJava(ids.rowIDs());
-    }
+  public BiDictionaryJava getColIds() {
+    return new BiDictionaryJava(ids.columnIDs());
+  }
 
-    public BiDictionaryJava getColIds(){
-        return new BiDictionaryJava(ids.columnIDs());
-    }
+  public BiDictionary columnIDs() {
+    return ids.columnIDs();
+  }
 
-    public BiDictionary columnIDs(){return ids.columnIDs();}
-    public BiDictionary rowIDs(){return ids.rowIDs();}
-    public void dfsWrite(String s, Schema schema, DistributedContext dc){
-        ids.dfsWrite(s, schema, dc);
-    }
-    public IndexedDataset create(CheckpointedDrm<Object> drm, BiDictionary colIds, BiDictionary rowIds){
-        return ids.create(drm, colIds, rowIds);
-    }
-    public CheckpointedDrm<Object> matrix() {return ids.matrix();}
+  public BiDictionary rowIDs() {
+    return ids.rowIDs();
+  }
 
-    public void dfsWrite(String dest, SparkDistributedContext sc){
-        ids.dfsWrite(dest, ids.dfsWrite$default$2(), sc);
-    }
+  public void dfsWrite(String s, Schema schema, DistributedContext dc) {
+    ids.dfsWrite(s, schema, dc);
+  }
 
-    public static IndexedDatasetJava apply(JavaPairRDD<String,String> rdd,
-                                           Optional<BiDictionaryJava> existingRowIDs,
-                                           SparkContext sc){
-        IndexedDatasetSpark newids;
-        if (!existingRowIDs.isPresent())
-            newids =  IndexedDatasetSpark.apply(rdd.rdd(),
-                    OptionHelper.<BiDictionary>none(), sc);
-        else
-            newids =  IndexedDatasetSpark.apply(rdd.rdd(),
-                        OptionHelper.<BiDictionary>some(existingRowIDs.get().bdict), sc);
-        return new IndexedDatasetJava(newids);
-    }
+  public IndexedDataset create(CheckpointedDrm<Object> drm, BiDictionary colIds, BiDictionary rowIds) {
+    return ids.create(drm, colIds, rowIds);
+  }
 
-    public IndexedDatasetJava newRowCardinality(int n){
-        return new IndexedDatasetJava(ids.matrix().newRowCardinality(n),
-                new BiDictionaryJava(ids.rowIDs()),
-                new BiDictionaryJava(ids.columnIDs()));
-    }
+  public CheckpointedDrm<Object> matrix() {
+    return ids.matrix();
+  }
+
+  public static IndexedDatasetJava apply(JavaPairRDD<String, String> rdd,
+                                         Optional<BiDictionaryJava> existingRowIDs,
+                                         SparkContext sc) {
+    IndexedDatasetSpark newids;
+    newids = existingRowIDs.map(biDictionaryJava -> IndexedDatasetSpark.apply(rdd.rdd(),
+        OptionHelper.some(biDictionaryJava.bdict), sc)).orElseGet(() -> IndexedDatasetSpark.apply(rdd.rdd(),
+        OptionHelper.none(), sc));
+    return new IndexedDatasetJava(newids);
+  }
+
+  public IndexedDatasetJava newRowCardinality(int n) {
+    return new IndexedDatasetJava(ids.matrix().newRowCardinality(n),
+        new BiDictionaryJava(ids.rowIDs()),
+        new BiDictionaryJava(ids.columnIDs()));
+  }
 }
